@@ -161,8 +161,9 @@ public class CinemaFinderUI extends JFrame {
         // Nút điểm số
         JPanel ratingBadge = new RoundedPanel(8, new Color(255, 193, 7));
         // ratingBadge.add(new JLabel("⭐ " + m.rating));
-        JLabel lblRating = new JLabel("⭐ " + m.rating);
-        lblRating.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12)); // Sử dụng font hỗ trợ Emoji
+        ImageIcon staricon = new ImageIcon("image/star.png");
+        JLabel lblRating = new JLabel(" " + m.rating);
+        lblRating.setIcon(staricon);
         ratingBadge.add(lblRating);
         JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         badgeWrapper.setOpaque(false);
@@ -182,7 +183,9 @@ public class CinemaFinderUI extends JFrame {
         subTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subTitle.setForeground(TEXT_MUTED);
         
-        JLabel details = new JLabel("⏱ " + m.duration + "  •  " + m.ageRating);
+        ImageIcon clockicon = new ImageIcon("image/time.png");
+        JLabel details = new JLabel(" " + m.duration + "  •  " + m.ageRating);
+        details.setIcon(clockicon);
         details.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         details.setForeground(TEXT_MUTED);
 
@@ -247,7 +250,7 @@ public class CinemaFinderUI extends JFrame {
             mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
             // Nút đóng (X)
-            JButton btnClose = new JButton("✕");
+            JButton btnClose = new JButton("X");
             btnClose.setBounds(850, 10, 40, 40);
             btnClose.setContentAreaFilled(false);
             btnClose.setBorderPainted(false);
@@ -294,17 +297,19 @@ public class CinemaFinderUI extends JFrame {
 
             // Thống kê (Stats)
             JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+            statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             statsPanel.setOpaque(false);
             statsPanel.setMaximumSize(new Dimension(900, 60));
-            statsPanel.add(createStatCard("⭐ IMDB", m.rating + "/10", new Color(255, 248, 225)));
-            statsPanel.add(createStatCard("🍅 Rotten Tomatoes", "93%", new Color(255, 235, 238)));
-            statsPanel.add(createStatCard("⏱ Thời lượng", m.duration, new Color(227, 242, 253)));
+            statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", m.rating + "/10", new Color(255, 248, 225)));
+            statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
+            statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration, new Color(227, 242, 253)));
             contentPanel.add(statsPanel);
             contentPanel.add(Box.createVerticalStrut(25));
 
             // Nội dung phim
             JLabel lblPlotTitle = new JLabel("Nội dung phim");
             lblPlotTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã có sẵn
             contentPanel.add(lblPlotTitle);
             contentPanel.add(Box.createVerticalStrut(10));
             
@@ -314,11 +319,13 @@ public class CinemaFinderUI extends JFrame {
             txtPlot.setOpaque(false);
             txtPlot.setEditable(false);
             txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             contentPanel.add(txtPlot);
             contentPanel.add(Box.createVerticalStrut(20));
 
             // Info Grid (Đạo diễn, diễn viên...)
             JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
+            infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             infoGrid.setOpaque(false);
             infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
             infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
@@ -345,10 +352,12 @@ public class CinemaFinderUI extends JFrame {
             // Bài đánh giá
             JLabel lblReview = new JLabel("Bài đánh giá");
             lblReview.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             contentPanel.add(lblReview);
             contentPanel.add(Box.createVerticalStrut(10));
             
             JPanel reviewPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+            reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             reviewPanel.setOpaque(false);
             reviewPanel.add(createReviewCard("IMDB", "Oppenheimer - Nolan's Best Work"));
             reviewPanel.add(createReviewCard("Rotten Tomatoes", "Oppenheimer Review - Brilliant and Haunting"));
@@ -358,12 +367,20 @@ public class CinemaFinderUI extends JFrame {
             // Lịch chiếu hôm nay
             JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
             lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
+            lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
             contentPanel.add(lblShowtimes);
             contentPanel.add(Box.createVerticalStrut(15));
 
-            contentPanel.add(createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"}));
+            // Ép trái cho block lịch chiếu 1
+            JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
+            showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+            contentPanel.add(showtime1);
             contentPanel.add(Box.createVerticalStrut(15));
-            contentPanel.add(createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"}));
+            
+            // Ép trái cho block lịch chiếu 2
+            JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
+            showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+            contentPanel.add(showtime2);
 
             JScrollPane scrollPane = new JScrollPane(contentPanel);
             scrollPane.setBorder(null);
@@ -380,12 +397,13 @@ public class CinemaFinderUI extends JFrame {
             setContentPane(wrapper);
         }
 
-        private JPanel createStatCard(String title, String value, Color bgColor) {
+        private JPanel createStatCard(ImageIcon icon,String title, String value, Color bgColor) {
             RoundedPanel p = new RoundedPanel(10, bgColor);
             p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
             p.setBorder(new EmptyBorder(10, 15, 10, 15));
             JLabel lTitle = new JLabel(title);
-            lTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            lTitle.setIcon(icon);
+            lTitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
             JLabel lVal = new JLabel(value);
             lVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
             p.add(lTitle);
