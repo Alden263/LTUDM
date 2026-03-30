@@ -13,7 +13,6 @@ public class CinemaFinderUI extends JFrame {
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
     private static final Color PRIMARY_PURPLE = new Color(124, 77, 255);
     private static final Color BG_MAIN = new Color(248, 249, 250);
-    private static final Color TEXT_DARK = new Color(33, 33, 33);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
 
@@ -81,35 +80,99 @@ public class CinemaFinderUI extends JFrame {
 
         JPanel tagsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         tagsPanel.setBackground(BG_MAIN);
+
+        //Quản lý các tag
+        List<JPanel> allTags = new ArrayList<>();
         
-        tagsPanel.add(createFilterTag("CGV Cinemas", false));
-        tagsPanel.add(createFilterTag("Galaxy Cinema", true));
-        tagsPanel.add(createFilterTag("Lotte Cinema", true));
+        JPanel tagCGV = createFilterTag("CGV", "image/cgv_logo.png", allTags);
+        JPanel tagGalaxy = createFilterTag("Galaxy Cinema", "image/galaxy_logo.png", allTags);
+        JPanel tagLotte = createFilterTag("Lotte", "image/lotte_logo.png", allTags);
+
+        tagsPanel.add(tagCGV);
+        tagsPanel.add(tagGalaxy);
+        tagsPanel.add(tagLotte);
+        selectSingleTag(tagCGV, allTags); //mặc định là cgv
 
         panel.add(tagsPanel, BorderLayout.CENTER);
         return panel;
     }
 
-    private JPanel createFilterTag(String name, boolean isSelected) {
-        RoundedPanel tag = new RoundedPanel(10, isSelected ? new Color(240, 248, 255) : Color.WHITE);
-        tag.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        if (isSelected) {
-            tag.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
-        } else {
-            tag.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        }
+    private JPanel createFilterTag(String name, String iconPath, List<JPanel> allTags) {
 
-        JCheckBox cb = new JCheckBox();
-        cb.setSelected(isSelected);
-        cb.setOpaque(false);
-        tag.add(cb);
-        
-        JLabel lblName = new JLabel(name);
-        lblName.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tag.add(lblName);
-        
+        // Tạo Panel với góc bo tròn
+        RoundedPanel tag = new RoundedPanel(15, Color.WHITE);
+        tag.setName(name);
+        tag.setLayout(new GridBagLayout()); // Dùng GridBagLayout để logo luôn nằm giữa
+        tag.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Đổi con trỏ thành hình bàn tay khi di chuột vào
+
+        // Label chứa Logo
+        JLabel lblIcon = new JLabel();
+        try {
+            // Load và scale ảnh logo (bạn có thể chỉnh kích thước 60x60 tùy theo layout)
+            ImageIcon originalIcon = new ImageIcon(iconPath);
+            Image img = originalIcon.getImage().getScaledInstance(140, 80, Image.SCALE_SMOOTH);
+            lblIcon.setIcon(new ImageIcon(img));
+        } catch (Exception e) {
+            // Fallback: Nếu không tìm thấy đường dẫn ảnh, sẽ hiển thị chữ thay thế
+            lblIcon.setText(name); 
+            lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        }
+        lblIcon.setToolTipText(name); // Hiển thị tên rạp khi di chuột vào
+        tag.add(lblIcon);
+        allTags.add(tag);
+
+        // Bắt sự kiện Click chuột để Toggle (Bật/Tắt) trạng thái
+        lblIcon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                selectSingleTag(tag, allTags);
+                
+                // TODO: Gọi hàm update/lọc danh sách phim ở đây dựa trên trạng thái isSelected[0]
+            }
+        });
+
         return tag;
     }
+
+    private void selectSingleTag(JPanel selectedTag, List<JPanel> allTags) {
+        for (JPanel tag : allTags) {
+            if (tag == selectedTag) {
+                // TRẠNG THÁI ĐƯỢC CHỌN
+                tag.setBackground(new Color(240, 248, 255)); // Nền xanh nhạt
+                tag.setPreferredSize(new Dimension(150, 90)); // Phóng to
+                tag.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 2)); // Viền xanh đậm
+            } else {
+                // TRẠNG THÁI KHÔNG ĐƯỢC CHỌN
+                tag.setBackground(Color.WHITE); // Nền trắng
+                tag.setPreferredSize(new Dimension(140, 80)); // Thu nhỏ
+                tag.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1)); // Viền xám
+            }
+            
+            // Cập nhật lại giao diện
+            tag.revalidate();
+            tag.repaint();
+        }
+    }
+    // private JPanel createFilterTag(String name, boolean isSelected) {
+    //     RoundedPanel tag = new RoundedPanel(10, isSelected ? new Color(240, 248, 255) : Color.WHITE);
+    //     tag.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 10));
+    //     if (isSelected) {
+    //         tag.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
+    //     } else {
+    //         tag.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+    //     }
+
+    //     JCheckBox cb = new JCheckBox();
+    //     cb.setSelected(isSelected);
+    //     cb.setOpaque(false);
+    //     tag.add(cb);
+        
+    //     JLabel lblName = new JLabel(name);
+    //     lblName.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    //     tag.add(lblName);
+        
+    //     return tag;
+    // }
 
     private JPanel createMovieGridSection() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
@@ -237,294 +300,294 @@ public class CinemaFinderUI extends JFrame {
     // =========================================================
     // DIALOG CHI TIẾT PHIM VÀ LỊCH CHIẾU
     // =========================================================
-    class MovieDetailsDialog extends JDialog {
-        public MovieDetailsDialog(JFrame parent, Movie m) {
-            super(parent, true);
-            setSize(900, 700);
-            setLocationRelativeTo(parent);
-            setUndecorated(true); // Bỏ thanh title bar mặc định
+    // class MovieDetailsDialog extends JDialog {
+    //     public MovieDetailsDialog(JFrame parent, Movie m) {
+    //         super(parent, true);
+    //         setSize(900, 700);
+    //         setLocationRelativeTo(parent);
+    //         setUndecorated(true); // Bỏ thanh title bar mặc định
             
-            // Container chính bo góc
-            RoundedPanel mainPanel = new RoundedPanel(20, Color.WHITE);
-            mainPanel.setLayout(new BorderLayout());
-            mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+    //         // Container chính bo góc
+    //         RoundedPanel mainPanel = new RoundedPanel(20, Color.WHITE);
+    //         mainPanel.setLayout(new BorderLayout());
+    //         mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-            // Nút đóng (X)
-            JButton btnClose = new JButton("X");
-            btnClose.setBounds(850, 10, 40, 40);
-            btnClose.setContentAreaFilled(false);
-            btnClose.setBorderPainted(false);
-            btnClose.setForeground(Color.WHITE);
-            btnClose.setFont(new Font("Arial", Font.BOLD, 18));
-            btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnClose.addActionListener(e -> dispose());
+    //         // Nút đóng (X)
+    //         JButton btnClose = new JButton("X");
+    //         btnClose.setBounds(850, 10, 40, 40);
+    //         btnClose.setContentAreaFilled(false);
+    //         btnClose.setBorderPainted(false);
+    //         btnClose.setForeground(Color.WHITE);
+    //         btnClose.setFont(new Font("Arial", Font.BOLD, 18));
+    //         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    //         btnClose.addActionListener(e -> dispose());
 
-            // JLayeredPane để overlay nút X lên trên ảnh Cover
-            JLayeredPane layeredPane = new JLayeredPane();
-            layeredPane.setPreferredSize(new Dimension(900, 250));
+    //         // JLayeredPane để overlay nút X lên trên ảnh Cover
+    //         JLayeredPane layeredPane = new JLayeredPane();
+    //         layeredPane.setPreferredSize(new Dimension(900, 250));
 
-            // Ảnh Cover (Giả định bằng màu)
-            JPanel coverPanel = new JPanel(new BorderLayout());
-            coverPanel.setBackground(new Color(60, 60, 60));
-            coverPanel.setBounds(0, 0, 900, 250);
+    //         // Ảnh Cover (Giả định bằng màu)
+    //         JPanel coverPanel = new JPanel(new BorderLayout());
+    //         coverPanel.setBackground(new Color(60, 60, 60));
+    //         coverPanel.setBounds(0, 0, 900, 250);
             
-            JPanel titleOverlay = new JPanel();
-            titleOverlay.setLayout(new BoxLayout(titleOverlay, BoxLayout.Y_AXIS));
-            titleOverlay.setOpaque(false);
-            titleOverlay.setBorder(new EmptyBorder(150, 30, 20, 20));
+    //         JPanel titleOverlay = new JPanel();
+    //         titleOverlay.setLayout(new BoxLayout(titleOverlay, BoxLayout.Y_AXIS));
+    //         titleOverlay.setOpaque(false);
+    //         titleOverlay.setBorder(new EmptyBorder(150, 30, 20, 20));
             
-            JLabel lblTitle = new JLabel(m.titleVn);
-            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 32));
-            lblTitle.setForeground(Color.WHITE);
-            JLabel lblSub = new JLabel(m.titleEn);
-            lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-            lblSub.setForeground(Color.LIGHT_GRAY);
+    //         JLabel lblTitle = new JLabel(m.titleVn);
+    //         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 32));
+    //         lblTitle.setForeground(Color.WHITE);
+    //         JLabel lblSub = new JLabel(m.titleEn);
+    //         lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+    //         lblSub.setForeground(Color.LIGHT_GRAY);
             
-            titleOverlay.add(lblTitle);
-            titleOverlay.add(lblSub);
-            coverPanel.add(titleOverlay, BorderLayout.WEST);
+    //         titleOverlay.add(lblTitle);
+    //         titleOverlay.add(lblSub);
+    //         coverPanel.add(titleOverlay, BorderLayout.WEST);
 
-            layeredPane.add(coverPanel, Integer.valueOf(0));
-            layeredPane.add(btnClose, Integer.valueOf(1));
+    //         layeredPane.add(coverPanel, Integer.valueOf(0));
+    //         layeredPane.add(btnClose, Integer.valueOf(1));
 
-            mainPanel.add(layeredPane, BorderLayout.NORTH);
+    //         mainPanel.add(layeredPane, BorderLayout.NORTH);
 
-            // Nội dung chi tiết (Cuộn được)
-            JPanel contentPanel = new JPanel();
-            contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-            contentPanel.setBackground(Color.WHITE);
-            contentPanel.setBorder(new EmptyBorder(20, 30, 30, 30));
+    //         // Nội dung chi tiết (Cuộn được)
+    //         JPanel contentPanel = new JPanel();
+    //         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+    //         contentPanel.setBackground(Color.WHITE);
+    //         contentPanel.setBorder(new EmptyBorder(20, 30, 30, 30));
 
-            // Thống kê (Stats)
-            JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-            statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            statsPanel.setOpaque(false);
-            statsPanel.setMaximumSize(new Dimension(900, 60));
-            statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", m.rating + "/10", new Color(255, 248, 225)));
-            statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
-            statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration, new Color(227, 242, 253)));
-            contentPanel.add(statsPanel);
-            contentPanel.add(Box.createVerticalStrut(25));
+    //         // Thống kê (Stats)
+    //         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
+    //         statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         statsPanel.setOpaque(false);
+    //         statsPanel.setMaximumSize(new Dimension(900, 60));
+    //         statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", m.rating + "/10", new Color(255, 248, 225)));
+    //         statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
+    //         statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration, new Color(227, 242, 253)));
+    //         contentPanel.add(statsPanel);
+    //         contentPanel.add(Box.createVerticalStrut(25));
 
-            // Nội dung phim
-            JLabel lblPlotTitle = new JLabel("Nội dung phim");
-            lblPlotTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-            lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã có sẵn
-            contentPanel.add(lblPlotTitle);
-            contentPanel.add(Box.createVerticalStrut(10));
+    //         // Nội dung phim
+    //         JLabel lblPlotTitle = new JLabel("Nội dung phim");
+    //         lblPlotTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+    //         lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã có sẵn
+    //         contentPanel.add(lblPlotTitle);
+    //         contentPanel.add(Box.createVerticalStrut(10));
             
-            JTextArea txtPlot = new JTextArea("Câu chuyện về nhà vật lý lý thuyết người Mỹ J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử. Bộ phim khám phá cuộc đời và sự nghiệp của Oppenheimer, bao gồm cả thời gian ông làm việc trong Dự án Manhattan.");
-            txtPlot.setWrapStyleWord(true);
-            txtPlot.setLineWrap(true);
-            txtPlot.setOpaque(false);
-            txtPlot.setEditable(false);
-            txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            contentPanel.add(txtPlot);
-            contentPanel.add(Box.createVerticalStrut(20));
+    //         JTextArea txtPlot = new JTextArea("Câu chuyện về nhà vật lý lý thuyết người Mỹ J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử. Bộ phim khám phá cuộc đời và sự nghiệp của Oppenheimer, bao gồm cả thời gian ông làm việc trong Dự án Manhattan.");
+    //         txtPlot.setWrapStyleWord(true);
+    //         txtPlot.setLineWrap(true);
+    //         txtPlot.setOpaque(false);
+    //         txtPlot.setEditable(false);
+    //         txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    //         txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         contentPanel.add(txtPlot);
+    //         contentPanel.add(Box.createVerticalStrut(20));
 
-            // Info Grid (Đạo diễn, diễn viên...)
-            JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
-            infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            infoGrid.setOpaque(false);
-            infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
-            infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
-            infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genres)));
+    //         // Info Grid (Đạo diễn, diễn viên...)
+    //         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
+    //         infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         infoGrid.setOpaque(false);
+    //         infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
+    //         infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
+    //         infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genres)));
             
-            JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            rightBottomInfo.setOpaque(false);
-            rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
-            rightBottomInfo.add(Box.createHorizontalStrut(50));
-            rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating));
+    //         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+    //         rightBottomInfo.setOpaque(false);
+    //         rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
+    //         rightBottomInfo.add(Box.createHorizontalStrut(50));
+    //         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating));
             
-            // Nút Trailer
-            JButton btnTrailer = new JButton("▶ Trailer");
-            btnTrailer.setBackground(new Color(229, 57, 53));
-            btnTrailer.setForeground(Color.WHITE);
-            btnTrailer.setFocusPainted(false);
-            rightBottomInfo.add(Box.createHorizontalStrut(50));
-            rightBottomInfo.add(btnTrailer);
+    //         // Nút Trailer
+    //         JButton btnTrailer = new JButton("▶ Trailer");
+    //         btnTrailer.setBackground(new Color(229, 57, 53));
+    //         btnTrailer.setForeground(Color.WHITE);
+    //         btnTrailer.setFocusPainted(false);
+    //         rightBottomInfo.add(Box.createHorizontalStrut(50));
+    //         rightBottomInfo.add(btnTrailer);
 
-            infoGrid.add(rightBottomInfo);
-            contentPanel.add(infoGrid);
-            contentPanel.add(Box.createVerticalStrut(30));
+    //         infoGrid.add(rightBottomInfo);
+    //         contentPanel.add(infoGrid);
+    //         contentPanel.add(Box.createVerticalStrut(30));
 
-            // Bài đánh giá
-            JLabel lblReview = new JLabel("Bài đánh giá");
-            lblReview.setFont(new Font("Segoe UI", Font.BOLD, 18));
-            lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            contentPanel.add(lblReview);
-            contentPanel.add(Box.createVerticalStrut(10));
+    //         // Bài đánh giá
+    //         JLabel lblReview = new JLabel("Bài đánh giá");
+    //         lblReview.setFont(new Font("Segoe UI", Font.BOLD, 18));
+    //         lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         contentPanel.add(lblReview);
+    //         contentPanel.add(Box.createVerticalStrut(10));
             
-            JPanel reviewPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-            reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            reviewPanel.setOpaque(false);
-            reviewPanel.add(createReviewCard("IMDB", "Oppenheimer - Nolan's Best Work"));
-            reviewPanel.add(createReviewCard("Rotten Tomatoes", "Oppenheimer Review - Brilliant and Haunting"));
-            contentPanel.add(reviewPanel);
-            contentPanel.add(Box.createVerticalStrut(30));
+    //         JPanel reviewPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+    //         reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         reviewPanel.setOpaque(false);
+    //         reviewPanel.add(createReviewCard("IMDB", "Oppenheimer - Nolan's Best Work"));
+    //         reviewPanel.add(createReviewCard("Rotten Tomatoes", "Oppenheimer Review - Brilliant and Haunting"));
+    //         contentPanel.add(reviewPanel);
+    //         contentPanel.add(Box.createVerticalStrut(30));
 
-            // Lịch chiếu hôm nay
-            JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
-            lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            contentPanel.add(lblShowtimes);
-            contentPanel.add(Box.createVerticalStrut(15));
+    //         // Lịch chiếu hôm nay
+    //         JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
+    //         lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
+    //         lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         contentPanel.add(lblShowtimes);
+    //         contentPanel.add(Box.createVerticalStrut(15));
 
-            // Ép trái cho block lịch chiếu 1
-            JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
-            showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            contentPanel.add(showtime1);
-            contentPanel.add(Box.createVerticalStrut(15));
+    //         // Ép trái cho block lịch chiếu 1
+    //         JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
+    //         showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         contentPanel.add(showtime1);
+    //         contentPanel.add(Box.createVerticalStrut(15));
             
-            // Ép trái cho block lịch chiếu 2
-            JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
-            showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-            contentPanel.add(showtime2);
+    //         // Ép trái cho block lịch chiếu 2
+    //         JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
+    //         showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+    //         contentPanel.add(showtime2);
 
-            JScrollPane scrollPane = new JScrollPane(contentPanel);
-            scrollPane.setBorder(null);
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            mainPanel.add(scrollPane, BorderLayout.CENTER);
+    //         JScrollPane scrollPane = new JScrollPane(contentPanel);
+    //         scrollPane.setBorder(null);
+    //         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+    //         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-            // Bọc mainPanel trong một panel trong suốt để tạo padding giả shadow
-            JPanel wrapper = new JPanel(new BorderLayout());
-            wrapper.setBackground(new Color(0, 0, 0, 0)); // Trong suốt
-            wrapper.add(mainPanel, BorderLayout.CENTER);
+    //         // Bọc mainPanel trong một panel trong suốt để tạo padding giả shadow
+    //         JPanel wrapper = new JPanel(new BorderLayout());
+    //         wrapper.setBackground(new Color(0, 0, 0, 0)); // Trong suốt
+    //         wrapper.add(mainPanel, BorderLayout.CENTER);
             
-            // Đặt nền trong suốt cho JDialog
-            setBackground(new Color(0, 0, 0, 0));
-            setContentPane(wrapper);
-        }
+    //         // Đặt nền trong suốt cho JDialog
+    //         setBackground(new Color(0, 0, 0, 0));
+    //         setContentPane(wrapper);
+    //     }
 
-        private JPanel createStatCard(ImageIcon icon,String title, String value, Color bgColor) {
-            RoundedPanel p = new RoundedPanel(10, bgColor);
-            p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-            p.setBorder(new EmptyBorder(10, 15, 10, 15));
-            JLabel lTitle = new JLabel(title);
-            lTitle.setIcon(icon);
-            lTitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            JLabel lVal = new JLabel(value);
-            lVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            p.add(lTitle);
-            p.add(Box.createVerticalStrut(5));
-            p.add(lVal);
-            return p;
-        }
+    //     private JPanel createStatCard(ImageIcon icon,String title, String value, Color bgColor) {
+    //         RoundedPanel p = new RoundedPanel(10, bgColor);
+    //         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+    //         p.setBorder(new EmptyBorder(10, 15, 10, 15));
+    //         JLabel lTitle = new JLabel(title);
+    //         lTitle.setIcon(icon);
+    //         lTitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+    //         JLabel lVal = new JLabel(value);
+    //         lVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    //         p.add(lTitle);
+    //         p.add(Box.createVerticalStrut(5));
+    //         p.add(lVal);
+    //         return p;
+    //     }
 
-        private JPanel createInfoBlock(String label, String value) {
-            JPanel p = new JPanel();
-            p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-            p.setOpaque(false);
-            JLabel lbl = new JLabel(label);
-            lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            lbl.setForeground(TEXT_MUTED);
-            JLabel val = new JLabel(value);
-            val.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            p.add(lbl);
-            p.add(Box.createVerticalStrut(3));
-            p.add(val);
-            return p;
-        }
+    //     private JPanel createInfoBlock(String label, String value) {
+    //         JPanel p = new JPanel();
+    //         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+    //         p.setOpaque(false);
+    //         JLabel lbl = new JLabel(label);
+    //         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    //         lbl.setForeground(TEXT_MUTED);
+    //         JLabel val = new JLabel(value);
+    //         val.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    //         p.add(lbl);
+    //         p.add(Box.createVerticalStrut(3));
+    //         p.add(val);
+    //         return p;
+    //     }
 
-        private JPanel createReviewCard(String source, String text) {
-            RoundedPanel p = new RoundedPanel(10, Color.WHITE);
-            p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-            p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 15, 15, 15)));
-            JLabel src = new JLabel(source);
-            src.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            src.setForeground(TEXT_MUTED);
-            JLabel link = new JLabel(text + " ↗");
-            link.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            link.setForeground(PRIMARY_BLUE);
-            p.add(src);
-            p.add(Box.createVerticalStrut(5));
-            p.add(link);
-            return p;
-        }
+    //     private JPanel createReviewCard(String source, String text) {
+    //         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
+    //         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+    //         p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 15, 15, 15)));
+    //         JLabel src = new JLabel(source);
+    //         src.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    //         src.setForeground(TEXT_MUTED);
+    //         JLabel link = new JLabel(text + " ↗");
+    //         link.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    //         link.setForeground(PRIMARY_BLUE);
+    //         p.add(src);
+    //         p.add(Box.createVerticalStrut(5));
+    //         p.add(link);
+    //         return p;
+    //     }
 
-        private JPanel createCinemaShowtimeBlock(String name, String address, String[] times) {
-            RoundedPanel p = new RoundedPanel(10, Color.WHITE);
-            p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-            p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 20, 15, 20)));
+    //     private JPanel createCinemaShowtimeBlock(String name, String address, String[] times) {
+    //         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
+    //         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+    //         p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 20, 15, 20)));
             
-            JLabel lblName = new JLabel(name);
-            lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            JLabel lblAddr = new JLabel(address);
-            lblAddr.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            lblAddr.setForeground(TEXT_MUTED);
+    //         JLabel lblName = new JLabel(name);
+    //         lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    //         JLabel lblAddr = new JLabel(address);
+    //         lblAddr.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    //         lblAddr.setForeground(TEXT_MUTED);
             
-            p.add(lblName);
-            p.add(lblAddr);
-            p.add(Box.createVerticalStrut(15));
+    //         p.add(lblName);
+    //         p.add(lblAddr);
+    //         p.add(Box.createVerticalStrut(15));
             
-            JPanel timeGrid = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-            timeGrid.setOpaque(false);
-            for (String t : times) {
-                RoundedPanel timeBtn = new RoundedPanel(8, Color.WHITE);
-                timeBtn.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
-                timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.Y_AXIS));
-                timeBtn.setBorder(BorderFactory.createCompoundBorder(timeBtn.getBorder(), new EmptyBorder(5, 10, 5, 10)));
+    //         JPanel timeGrid = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+    //         timeGrid.setOpaque(false);
+    //         for (String t : times) {
+    //             RoundedPanel timeBtn = new RoundedPanel(8, Color.WHITE);
+    //             timeBtn.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
+    //             timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.Y_AXIS));
+    //             timeBtn.setBorder(BorderFactory.createCompoundBorder(timeBtn.getBorder(), new EmptyBorder(5, 10, 5, 10)));
                 
-                JLabel lblT = new JLabel(t);
-                lblT.setFont(new Font("Segoe UI", Font.BOLD, 16));
-                lblT.setForeground(PRIMARY_BLUE);
-                JLabel lblFormat = new JLabel("2D Phụ đề");
-                lblFormat.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-                JLabel lblPrice = new JLabel("80.000đ");
-                lblPrice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+    //             JLabel lblT = new JLabel(t);
+    //             lblT.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    //             lblT.setForeground(PRIMARY_BLUE);
+    //             JLabel lblFormat = new JLabel("2D Phụ đề");
+    //             lblFormat.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+    //             JLabel lblPrice = new JLabel("80.000đ");
+    //             lblPrice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
                 
-                timeBtn.add(lblT);
-                timeBtn.add(lblFormat);
-                timeBtn.add(lblPrice);
-                timeGrid.add(timeBtn);
-            }
-            p.add(timeGrid);
+    //             timeBtn.add(lblT);
+    //             timeBtn.add(lblFormat);
+    //             timeBtn.add(lblPrice);
+    //             timeGrid.add(timeBtn);
+    //         }
+    //         p.add(timeGrid);
             
-            return p;
-        }
-    }
+    //         return p;
+    //     }
+    // }
 
     // =========================================================
     // LỚP HỖ TRỢ (MODELS & CUSTOM UI)
     // =========================================================
     
     // Model Dữ liệu Phim
-    static class Movie {
-        String titleVn, titleEn, duration, ageRating, rating;
-        String[] genres;
+    // static class Movie {
+    //     String titleVn, titleEn, duration, ageRating, rating;
+    //     String[] genres;
 
-        public Movie(String titleVn, String titleEn, String duration, String ageRating, String rating, String[] genres) {
-            this.titleVn = titleVn;
-            this.titleEn = titleEn;
-            this.duration = duration;
-            this.ageRating = ageRating;
-            this.rating = rating;
-            this.genres = genres;
-        }
-    }
+    //     public Movie(String titleVn, String titleEn, String duration, String ageRating, String rating, String[] genres) {
+    //         this.titleVn = titleVn;
+    //         this.titleEn = titleEn;
+    //         this.duration = duration;
+    //         this.ageRating = ageRating;
+    //         this.rating = rating;
+    //         this.genres = genres;
+    //     }
+    // }
 
     // Custom Panel để vẽ bo góc
-    class RoundedPanel extends JPanel {
-        private int cornerRadius = 15;
+    // class RoundedPanel extends JPanel {
+    //     private int cornerRadius = 15;
 
-        public RoundedPanel(int radius, Color bgColor) {
-            super();
-            this.cornerRadius = radius;
-            setOpaque(false); // Quan trọng để nền không bị vuông
-            setBackground(bgColor);
-        }
+    //     public RoundedPanel(int radius, Color bgColor) {
+    //         super();
+    //         this.cornerRadius = radius;
+    //         setOpaque(false); // Quan trọng để nền không bị vuông
+    //         setBackground(bgColor);
+    //     }
 
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, cornerRadius, cornerRadius));
-            super.paintComponent(g2);
-            g2.dispose();
-        }
-    }
+    //     @Override
+    //     protected void paintComponent(Graphics g) {
+    //         Graphics2D g2 = (Graphics2D) g.create();
+    //         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    //         g2.setColor(getBackground());
+    //         g2.fill(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, cornerRadius, cornerRadius));
+    //         super.paintComponent(g2);
+    //         g2.dispose();
+    //     }
+    // }
 
     public static void main(String[] args) {
         // Thiết lập giao diện hệ thống cho đẹp hơn
