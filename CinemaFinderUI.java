@@ -87,7 +87,7 @@ public class CinemaFinderUI extends JFrame {
         return header;
     }
 
-    // --- THÊM MỚI: Sidebar danh sách chi nhánh ---
+    // --- Sidebar danh sách chi nhánh ---
     private JPanel createSidebarSection() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Color.WHITE);
@@ -194,9 +194,7 @@ public class CinemaFinderUI extends JFrame {
         listPanel.revalidate();
         listPanel.repaint();
     }
-
-    // --- GIỮ NGUYÊN CODE CỦA BẠN TỪ ĐÂY TRỞ XUỐNG ---
-
+    // --- Phần Filter Hệ thống rạp ---
     private JPanel createFilterSection() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(BG_MAIN);
