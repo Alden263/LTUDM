@@ -5,7 +5,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,6 +26,9 @@ public class CinemaFinderUI extends JFrame {
     private static final Color BG_MAIN = new Color(248, 249, 250);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
+    private static final int cgvcinemaId = 3;
+    private static final int galaxycinemaId = 2;
+    private static final int lottecinemaId = 26;
 
     public CinemaFinderUI() {
         setTitle("Cinema Finder");
@@ -111,14 +117,15 @@ public class CinemaFinderUI extends JFrame {
         listPanel.setBackground(Color.WHITE);
 
         // Dữ liệu giả lập bằng List
-        List<String> branches = new ArrayList<>();
-        branches.add("CGV Giga Mall Thủ Đức");
-        branches.add("CGV Pandora City");
-        branches.add("CGV Sư Vạn Hạnh");
-        branches.add("CGV Liberty Citypoint");
-        branches.add("CGV Vincom Center Landmark 81");
-        branches.add("CGV Crescent Mall");
-        branches.add("CGV Vincom Đồng Khởi");
+        LinkedHashMap<Integer, String> branches = new LinkedHashMap<>();
+        branches.put(1, "CGV Giga Mall Thủ Đức");
+        branches.put(2, "CGV Pandora City");
+        branches.put(3, "CGV Sư Vạn Hạnh");
+        branches.put(4, "CGV Liberty Citypoint");
+        branches.put(5, "CGV Vincom Center Landmark 81");
+        branches.put(6, "Galaxy Cinema Crescent Mall");
+        branches.put(7, "Galaxy Cinema Vincom Đồng Khởi");
+        branches.put(8, "Lotte Cinema Phú Mỹ Hưng");
         renderBranches(listPanel, branches);
 
         JScrollPane scrollSidebar = new JScrollPane(listPanel);
@@ -129,14 +136,16 @@ public class CinemaFinderUI extends JFrame {
         return sidebar;
     }
 
+    // Lấy danh sách các rạp chiếu phim
+
     int selectedIndex = 0;
-    private void renderBranches(JPanel listPanel, List<String> branches) {
+    private void renderBranches(JPanel listPanel, LinkedHashMap<Integer, String> branches) {
         listPanel.removeAll(); // Xóa hết các item cũ trước khi vẽ lại
-        
-        for (int i = 0; i < branches.size(); i++) {
-            final int index = i;
-            String branchName = branches.get(i);
-            boolean isSelected = (i == selectedIndex);
+
+        for (Map.Entry<Integer, String> entry : branches.entrySet()) {
+            final int index = entry.getKey();
+            String branchName = entry.getValue();
+            boolean isSelected = (index == selectedIndex);
 
             // --- Khởi tạo Item Panel ---
             JPanel item = new JPanel(new BorderLayout());
