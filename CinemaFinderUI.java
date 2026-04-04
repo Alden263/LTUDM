@@ -1,24 +1,33 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import org.json.JSONObject;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.List;
+// import javax.swing.*;
+// import javax.swing.border.EmptyBorder;
+// import java.awt.*;
+// import java.awt.event.MouseAdapter;
+// import java.awt.event.MouseEvent;
+// import java.util.ArrayList;
+// import java.util.List;
 
 public class CinemaFinderUI extends JFrame {
+    private JPanel listPanel;
+    private LinkedHashMap<Integer, String> branches;
 
     // --- CÁC MÀU SẮC CHỦ ĐẠO TỪ THIẾT KẾ ---
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
@@ -29,8 +38,22 @@ public class CinemaFinderUI extends JFrame {
     private static final int cgvcinemaId = 3;
     private static final int galaxycinemaId = 2;
     private static final int lottecinemaId = 26;
+    private String ipserver;
+
+    public void searchipserver() throws IOException{
+        String api = "https://retoolapi.dev/lKNfWn/data/1";
+        Document doc = Jsoup.connect(api).ignoreContentType(true).ignoreHttpErrors(true).header("Content-Type", "application/json").method(Connection.Method.GET).execute().parse();
+        JSONObject json = new JSONObject(doc.text());
+        System.out.println(json.get("ip"));
+    }
 
     public CinemaFinderUI() {
+        try {
+            searchipserver();
+        } catch (IOException e) {
+            System.err.println("Lỗi khi tìm IP server: " + e.getMessage());
+        }
+
         setTitle("Cinema Finder");
         setSize(1280, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -45,7 +68,7 @@ public class CinemaFinderUI extends JFrame {
         JPanel mainBody = new JPanel(new BorderLayout());
 
         // 2. Sidebar Bên Trái (Danh sách chi nhánh rạp)
-        mainBody.add(createSidebarSection(), BorderLayout.WEST);
+        mainBody.add(createSidebarSection(cgvcinemaId), BorderLayout.WEST);
 
         // 3. Nội dung bên phải (Chứa Filter Hệ thống rạp + Lưới Phim)
         JPanel rightContent = new JPanel();
@@ -94,7 +117,7 @@ public class CinemaFinderUI extends JFrame {
     }
 
     // --- Sidebar danh sách chi nhánh ---
-    private JPanel createSidebarSection() {
+    private JPanel createSidebarSection(int typecinemaId) {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Color.WHITE);
         sidebar.setPreferredSize(new Dimension(280, 0));
@@ -112,20 +135,21 @@ public class CinemaFinderUI extends JFrame {
         sidebar.add(searchPanel, BorderLayout.NORTH);
 
         // Container danh sách
-        JPanel listPanel = new JPanel();
+        listPanel = new JPanel();
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
         listPanel.setBackground(Color.WHITE);
 
         // Dữ liệu giả lập bằng List
-        LinkedHashMap<Integer, String> branches = new LinkedHashMap<>();
-        branches.put(1, "CGV Giga Mall Thủ Đức");
-        branches.put(2, "CGV Pandora City");
-        branches.put(3, "CGV Sư Vạn Hạnh");
-        branches.put(4, "CGV Liberty Citypoint");
-        branches.put(5, "CGV Vincom Center Landmark 81");
-        branches.put(6, "Galaxy Cinema Crescent Mall");
-        branches.put(7, "Galaxy Cinema Vincom Đồng Khởi");
-        branches.put(8, "Lotte Cinema Phú Mỹ Hưng");
+        branches = new LinkedHashMap<>();
+        getlistcinema(typecinemaId, branches);
+        // branches.put(1, "CGV Giga Mall Thủ Đức");
+        // branches.put(2, "CGV Pandora City");
+        // branches.put(3, "CGV Sư Vạn Hạnh");
+        // branches.put(4, "CGV Liberty Citypoint");
+        // branches.put(5, "CGV Vincom Center Landmark 81");
+        // branches.put(6, "Galaxy Cinema Crescent Mall");
+        // branches.put(7, "Galaxy Cinema Vincom Đồng Khởi");
+        // branches.put(8, "Lotte Cinema Phú Mỹ Hưng");
         renderBranches(listPanel, branches);
 
         JScrollPane scrollSidebar = new JScrollPane(listPanel);
@@ -137,6 +161,9 @@ public class CinemaFinderUI extends JFrame {
     }
 
     // Lấy danh sách các rạp chiếu phim
+    private void getlistcinema(int cinemaId, LinkedHashMap<Integer, String> branches){
+
+    }
 
     int selectedIndex = 0;
     private void renderBranches(JPanel listPanel, LinkedHashMap<Integer, String> branches) {
@@ -218,9 +245,9 @@ public class CinemaFinderUI extends JFrame {
         //Quản lý các tag
         List<JPanel> allTags = new ArrayList<>();
         
-        JPanel tagCGV = createFilterTag("CGV", "image/cgv_logo.png", allTags);
-        JPanel tagGalaxy = createFilterTag("Galaxy Cinema", "image/galaxy_logo.png", allTags);
-        JPanel tagLotte = createFilterTag("Lotte", "image/lotte_logo.png", allTags);
+        JPanel tagCGV = createFilterTag("CGV", "image/cgv_logo.png", allTags, cgvcinemaId);
+        JPanel tagGalaxy = createFilterTag("Galaxy Cinema", "image/galaxy_logo.png", allTags, galaxycinemaId);
+        JPanel tagLotte = createFilterTag("Lotte", "image/lotte_logo.png", allTags, lottecinemaId);
 
         tagsPanel.add(tagCGV);
         tagsPanel.add(tagGalaxy);
@@ -231,7 +258,7 @@ public class CinemaFinderUI extends JFrame {
         return panel;
     }
 
-    private JPanel createFilterTag(String name, String iconPath, List<JPanel> allTags) {
+    private JPanel createFilterTag(String name, String iconPath, List<JPanel> allTags, int id) {
         // Tạo Panel với góc bo tròn
         RoundedPanel tag = new RoundedPanel(15, Color.WHITE);
         tag.setName(name);
@@ -268,6 +295,7 @@ public class CinemaFinderUI extends JFrame {
                 tag.setBackground(new Color(240, 248, 255)); 
                 tag.setPreferredSize(new Dimension(150, 90)); 
                 tag.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 2)); 
+                
             } else {
                 tag.setBackground(Color.WHITE); 
                 tag.setPreferredSize(new Dimension(140, 80)); 

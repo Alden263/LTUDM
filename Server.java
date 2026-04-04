@@ -5,12 +5,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+
 public class Server {
     private int PORT;
     private static final int n_threads = 10;
 
     public Server(int PORT) {
         this.PORT = PORT;
+    }
+    public void getip() throws IOException{
+        Socket server = new Socket("thongtindaotao.sgu.edu.vn", 80);
+        String localip = server.getLocalAddress().toString().substring(1);
+        String api = "https://retoolapi.dev/lKNfWn/data/1";
+        String jsondata = "{\"ip\":\"" + localip + "\"}";
+        Jsoup.connect(api).ignoreContentType(true).ignoreHttpErrors(true).header("Content-Type", "application/json").requestBody(jsondata).method(Connection.Method.PUT).execute();
     }
     public void start(){
         ExecutorService pool = Executors.newFixedThreadPool(n_threads);
@@ -61,5 +71,14 @@ public class Server {
             pool.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+    public static void main(String[] args){
+        Server server = new Server(4000);
+        // try {
+        //     server.getip();
+        // } catch (IOException e) {
+        //     System.err.println("Lỗi khi lấy IP: " + e.getMessage());
+        // }
+        server.start();
     }
 }
