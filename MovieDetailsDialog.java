@@ -109,7 +109,7 @@ class MovieDetailsDialog extends JDialog {
         infoGrid.setOpaque(false);
         infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
         infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
-        infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genres)));
+        infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genre)));
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
