@@ -147,7 +147,7 @@ public class CinemaFinderUI extends JFrame {
         // Dữ liệu giả lập bằng List
         branches = new LinkedHashMap<>();
         getlistcinema(typecinemaId);
-        renderBranches(listPanel, branches);
+        renderBranches(listPanel, branches, typecinemaId);
 
         JScrollPane scrollSidebar = new JScrollPane(listPanel);
         scrollSidebar.setBorder(null);
@@ -209,7 +209,7 @@ public class CinemaFinderUI extends JFrame {
                     }
                     selectedIndex = branches.isEmpty() ? 0 : branches.keySet().iterator().next();
                     // Xóa nội dung cũ và render lại 
-                    renderBranches(listPanel, branches);
+                    renderBranches(listPanel, branches, cinemaId);
                     listPanel.revalidate();
                     listPanel.repaint();
                 }
@@ -223,8 +223,9 @@ public class CinemaFinderUI extends JFrame {
     // Bắt đầu thực thi luồng ngầm
     worker.execute();
     }
+    // render danh sách rạp chiếu
     int selectedIndex = 0;
-    private void renderBranches(JPanel listPanel, LinkedHashMap<Integer, String> branches) {
+    private void renderBranches(JPanel listPanel, LinkedHashMap<Integer, String> branches, int typecinemaId) {
         listPanel.removeAll(); // Xóa hết các item cũ trước khi vẽ lại
         for (Map.Entry<Integer, String> entry : branches.entrySet()) {
             final int index = entry.getKey();
@@ -247,8 +248,17 @@ public class CinemaFinderUI extends JFrame {
             JLabel lblName = new JLabel(branchName);
             lblName.setFont(new Font("Segoe UI", isSelected ? Font.BOLD : Font.PLAIN, 13));
             try {
-                    ImageIcon icon = new ImageIcon(new ImageIcon("image/cgv_logo.png").getImage().getScaledInstance(30, 18, Image.SCALE_SMOOTH));
-                    lblName.setIcon(icon);
+                    if (typecinemaId == cgvcinemaId) {
+                        ImageIcon icon = new ImageIcon(new ImageIcon("image/cgv_logo.png").getImage().getScaledInstance(30, 18, Image.SCALE_SMOOTH));
+                        lblName.setIcon(icon);
+                    } else if (typecinemaId == galaxycinemaId) {
+                        ImageIcon icon = new ImageIcon(new ImageIcon("image/galaxy_logo.png").getImage().getScaledInstance(30, 18, Image.SCALE_SMOOTH));
+                        lblName.setIcon(icon);
+                    }
+                    else if (typecinemaId == lottecinemaId) {
+                        ImageIcon icon = new ImageIcon(new ImageIcon("image/lotte_logo.png").getImage().getScaledInstance(30, 18, Image.SCALE_SMOOTH));
+                        lblName.setIcon(icon);
+                    }
                 } catch (Exception e) {
                     lblName.setText("CGV");
                 }
@@ -267,7 +277,7 @@ public class CinemaFinderUI extends JFrame {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     selectedIndex = index; // Cập nhật vị trí được chọn
-                    renderBranches(listPanel, branches); // Vẽ lại toàn bộ danh sách
+                    renderBranches(listPanel, branches, typecinemaId); // Vẽ lại toàn bộ danh sách
                     getlistmovie(index); // Lấy danh sách phim cho rạp được chọn
                 }
 
@@ -441,16 +451,6 @@ public class CinemaFinderUI extends JFrame {
 
         // Tạo dữ liệu giả bằng List
         List<Movie> movies = new ArrayList<>();
-
-        // movies.add(new Movie("Hành Tinh Cát: Phần Hai", "Dune: Part Two", "166 phút", "C13", "8.8", new String[]{"Sci-Fi", "Adventure"}));
-        // movies.add(new Movie("Nhóm Marvels", "The Marvels", "105 phút", "C13", "7.2", new String[]{"Action", "Adventure"}));
-        // movies.add(new Movie("Oppenheimer", "Oppenheimer", "180 phút", "C16", "8.6", new String[]{"Biography", "Drama"}));
-        // movies.add(new Movie("Kung Fu Gấu Trúc 4", "Kung Fu Panda 4", "94 phút", "P", "7.5", new String[]{"Animation", "Action"}));
-        // movies.add(new Movie("Godzilla và Kong: Đế Chế Mới", "Godzilla x Kong", "115 phút", "C13", "7.8", new String[]{"Action", "Sci-Fi"}));
-
-        // for (Movie m : movies) {
-        //     grid.add(createMovieCard(m));
-        // }
         JLabel lblEmpty = new JLabel("Không tìm thấy phim nào cho rạp này.");
         lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblEmpty.setForeground(TEXT_MUTED);
