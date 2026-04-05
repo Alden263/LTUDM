@@ -105,7 +105,6 @@ public class ClientHandler implements Runnable {
         try{
             String api = "https://zlp-movie-api.zalopay.vn/v2/movie/web/data/sessions?cinemaId=" + cinemaId + "&date=" + LocalDate.now().toString();
             Document doc = Jsoup.connect(api).ignoreContentType(true).method(Connection.Method.GET).execute().parse();
-
             JSONObject json = new JSONObject(doc.text());
             if(!json.has("data") || json.isNull("data")){
                 System.err.println("Lỗi: Phản hồi API không chứa trường 'data'.");
@@ -114,9 +113,33 @@ public class ClientHandler implements Runnable {
 
             JSONObject data = json.getJSONObject("data");
             JSONArray films = data.getJSONArray("films");
-            return new JSONObject().put("films", films).put("status", "success");
+            return getactor(films);
+            // return new JSONObject().put("films", films).put("status", "success");
         } catch(IOException e){
             System.err.println("Lỗi khi lấy danh sách phim: " + e.getMessage());
+            return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
+        }
+    }
+    public JSONObject getactor(JSONArray films){
+        try{
+            String api = "https://cinestar.com.vn/_next/data/YZahHhMaxCbNZW34iKtBz/showtimes.json";
+            Document doc = Jsoup.connect(api).ignoreContentType(true).method(Connection.Method.GET).execute().parse();
+            JSONObject json = new JSONObject(doc.text());
+            JSONArray listmovie = json.getJSONObject("pageProps").getJSONObject("res").getJSONArray("listMovie");
+            for(int i=0; i < films.length(); i++){
+                JSONObject film = films.getJSONObject(i);
+                String titleEn = film.getString("nameEN");
+                for(int j=0; j < listmovie.length(); j++){
+                    JSONObject movie = listmovie.getJSONObject(j);
+                    if(movie.getString("name_en").contains(titleEn.toUpperCase())){
+                        film.put("actors", movie.getString("actor"));
+                        break;
+                    }
+                }
+            }
+            return new JSONObject().put("data", films).put("status", "success");
+        } catch(IOException e){
+            System.err.println("Lỗi khi lấy danh sách diễn viên: " + e.getMessage());
             return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
         }
     }

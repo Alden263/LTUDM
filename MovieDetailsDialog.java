@@ -80,9 +80,9 @@ class MovieDetailsDialog extends JDialog {
         statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         statsPanel.setOpaque(false);
         statsPanel.setMaximumSize(new Dimension(900, 60));
-        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", m.rating + "/10", new Color(255, 248, 225)));
+        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", 8 + "/10", new Color(255, 248, 225)));
         statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
-        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration, new Color(227, 242, 253)));
+        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration + " phút", new Color(227, 242, 253)));
         contentPanel.add(statsPanel);
         contentPanel.add(Box.createVerticalStrut(25));
 
@@ -115,7 +115,7 @@ class MovieDetailsDialog extends JDialog {
         rightBottomInfo.setOpaque(false);
         rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
         rightBottomInfo.add(Box.createHorizontalStrut(50));
-        rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating));
+        rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
         // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");

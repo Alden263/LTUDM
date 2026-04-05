@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 public class CinemaFinderUI extends JFrame {
     private JPanel listPanel;
+    private JPanel grid;
     private LinkedHashMap<Integer, String> branches;
 
     // --- CÁC MÀU SẮC CHỦ ĐẠO TỪ THIẾT KẾ ---
@@ -159,7 +161,7 @@ public class CinemaFinderUI extends JFrame {
     private void getlistcinema(int cinemaId){
         SwingWorker<LinkedHashMap<Integer, String>, Void> worker = new SwingWorker<LinkedHashMap<Integer, String>, Void>() {
         @Override
-        protected LinkedHashMap<Integer, String> doInBackground() throws Exception {
+        protected LinkedHashMap<Integer, String> doInBackground() {
             LinkedHashMap<Integer, String> rawData = new LinkedHashMap<>();
             
             try (Socket socket = new Socket(ipserver, 4000);
@@ -266,6 +268,7 @@ public class CinemaFinderUI extends JFrame {
                 public void mouseClicked(MouseEvent e) {
                     selectedIndex = index; // Cập nhật vị trí được chọn
                     renderBranches(listPanel, branches); // Vẽ lại toàn bộ danh sách
+                    getlistmovie(index); // Lấy danh sách phim cho rạp được chọn
                 }
 
                 @Override
@@ -281,7 +284,7 @@ public class CinemaFinderUI extends JFrame {
 
             listPanel.add(item);
         }
-
+        getlistmovie(selectedIndex);
         listPanel.revalidate();
         listPanel.repaint();
     }
@@ -362,6 +365,69 @@ public class CinemaFinderUI extends JFrame {
     }
 
     // #region Lấy list phim
+    private void getlistmovie(int cinemaId){
+        SwingWorker<List<Movie>, Void> worker = new SwingWorker<List<Movie>, Void>() {
+            protected List<Movie> doInBackground(){
+                List<Movie> movies = new ArrayList<>();
+                try (Socket socket = new Socket(ipserver, 4000);
+                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    out.println("GET_MOVIES|" + cinemaId);
+                    String response = in.readLine();
+                    JSONObject json = new JSONObject(response);
+                    String status = json.getString("status"); 
+                    if(status.equals("error")){
+                        return new ArrayList<>(); 
+                    }
+                    JSONArray data = json.getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject movieJson = data.getJSONObject(i);
+                        Movie movie = new Movie(
+                            movieJson.getInt("id"),
+                            movieJson.getString("nameVI"),
+                            movieJson.getString("nameEN"),
+                            movieJson.getInt("duration"),
+                            movieJson.getInt("age"),
+                            movieJson.getString("category"),
+                            movieJson.getString("desc"),
+                            movieJson.getString("director"),
+                            // movieJson.getString("actors"),
+                            "N/A",
+                            movieJson.getString("publishDate"),
+                            movieJson.getJSONObject("images").getString("type1_size2")
+                        );
+                        movies.add(movie);
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return movies;
+            }
+            protected void done(){
+                try{
+                    List<Movie> movies = get();
+                    grid.removeAll();
+                    if(movies.isEmpty()){
+                        JLabel lblEmpty = new JLabel("Không tìm thấy phim nào cho rạp này.");
+                        lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+                        lblEmpty.setForeground(TEXT_MUTED);
+                        grid.add(lblEmpty);
+                    } else {
+                        for(Movie m : movies){
+                            grid.add(createMovieCard(m));
+                        }
+                    }
+                    grid.revalidate();
+                    grid.repaint();
+                } catch (Exception e) {
+                    System.err.println("Lỗi xử lý UI sau khi nhận dữ liệu: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
+    }
+
     private JPanel createMovieGridSection() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(BG_MAIN);
@@ -370,21 +436,25 @@ public class CinemaFinderUI extends JFrame {
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         panel.add(lblTitle, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
+        grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
         grid.setBackground(BG_MAIN);
 
         // Tạo dữ liệu giả bằng List
         List<Movie> movies = new ArrayList<>();
+
         // movies.add(new Movie("Hành Tinh Cát: Phần Hai", "Dune: Part Two", "166 phút", "C13", "8.8", new String[]{"Sci-Fi", "Adventure"}));
         // movies.add(new Movie("Nhóm Marvels", "The Marvels", "105 phút", "C13", "7.2", new String[]{"Action", "Adventure"}));
         // movies.add(new Movie("Oppenheimer", "Oppenheimer", "180 phút", "C16", "8.6", new String[]{"Biography", "Drama"}));
         // movies.add(new Movie("Kung Fu Gấu Trúc 4", "Kung Fu Panda 4", "94 phút", "P", "7.5", new String[]{"Animation", "Action"}));
         // movies.add(new Movie("Godzilla và Kong: Đế Chế Mới", "Godzilla x Kong", "115 phút", "C13", "7.8", new String[]{"Action", "Sci-Fi"}));
 
-        for (Movie m : movies) {
-            grid.add(createMovieCard(m));
-        }
-
+        // for (Movie m : movies) {
+        //     grid.add(createMovieCard(m));
+        // }
+        JLabel lblEmpty = new JLabel("Không tìm thấy phim nào cho rạp này.");
+        lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        lblEmpty.setForeground(TEXT_MUTED);
+        grid.add(lblEmpty);
         panel.add(grid, BorderLayout.CENTER);
         return panel;
     }
@@ -410,11 +480,11 @@ public class CinemaFinderUI extends JFrame {
         JPanel ratingBadge = new RoundedPanel(8, new Color(255, 193, 7));
         try {
             ImageIcon staricon = new ImageIcon("image/star.png");
-            JLabel lblRating = new JLabel(" " + m.rating);
+            JLabel lblRating = new JLabel(" " + 8);
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);
         } catch(Exception e) {
-            ratingBadge.add(new JLabel("⭐ " + m.rating));
+            ratingBadge.add(new JLabel("⭐ " + 8));
         }
         
         JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT));
