@@ -74,11 +74,11 @@ public class Server {
     }
     public static void main(String[] args){
         Server server = new Server(4000);
-        // try {
-        //     server.getip();
-        // } catch (IOException e) {
-        //     System.err.println("Lỗi khi lấy IP: " + e.getMessage());
-        // }
+        try {
+            server.getip();
+        } catch (IOException e) {
+            System.err.println("Lỗi khi lấy IP: " + e.getMessage());
+        }
         server.start();
     }
 }
