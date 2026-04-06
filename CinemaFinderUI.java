@@ -476,55 +476,53 @@ public class CinemaFinderUI extends JFrame {
         });
 
         // --- 1. Tạo container hỗ trợ xếp chồng (Overlay) ---
-        JPanel posterContainer = new JPanel();
-        posterContainer.setLayout(new OverlayLayout(posterContainer));
-        posterContainer.setPreferredSize(new Dimension(250, 200));
-        posterContainer.setMaximumSize(new Dimension(500, 200));
-        posterContainer.setOpaque(false);
+        Image loadedImg = null;
+        try {
+            URL url = new URL(m.posterurl);
+            loadedImg = ImageIO.read(url);
+        } catch (Exception e) {
+            System.err.println("Lỗi tải ảnh: " + m.posterurl);
+        }
+        final Image posterImage = loadedImg; // Phải là final để dùng trong class vô danh
 
-        // --- 2. Tạo Badge điểm số (Lớp trên) ---
+        // --- 2. Tạo Poster Container với hình nền ---
+        // FlowLayout.RIGHT sẽ tự động đẩy mọi thứ nhét vào nó sang góc trên-phải
+        JPanel posterContainer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (posterImage != null) {
+                    // Vẽ ảnh lấp đầy toàn bộ khung (tràn viền 100%)
+                    g.drawImage(posterImage, 0, 0, getWidth(), getHeight(), this);
+                } else {
+                    // Nếu lỗi mạng, hiển thị nền xám
+                    g.setColor(new Color(230, 230, 230));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                    g.setColor(Color.DARK_GRAY);
+                    g.drawString("No Image", getWidth() / 2 - 25, getHeight() / 2);
+                }
+            }
+        };
+        posterContainer.setPreferredSize(new Dimension(250, 300));
+        // Khóa chiều cao ở 200px, chiều ngang cho phép giãn theo grid
+        posterContainer.setMaximumSize(new Dimension(Short.MAX_VALUE, 300)); 
+
+        // --- 3. Tạo Badge điểm số ---
         JPanel ratingBadge = new RoundedPanel(8, new Color(255, 193, 7));
         try {
-            ImageIcon staricon = new ImageIcon("image/star.png");
-            JLabel lblRating = new JLabel(" " + 8); // Thay hardcode 8 bằng biến m.rating
+            // Chỉnh lại kích thước icon ngôi sao cho gọn gàng hơn
+            ImageIcon staricon = new ImageIcon(new ImageIcon("image/star.png").getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH));
+            JLabel lblRating = new JLabel(" " + 8); 
+            lblRating.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);
         } catch(Exception e) {
             ratingBadge.add(new JLabel("⭐ " + 8));
         }
+
+        // --- 4. Gắn huy hiệu vào container ---
+        posterContainer.add(ratingBadge);
         
-        // Tạo một wrapper vô hình để đẩy Badge lên góc trên - phải
-        JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10)); // Canh phải, lề 10px
-        badgeWrapper.setOpaque(false); // Quan trọng: làm trong suốt
-        badgeWrapper.add(ratingBadge);
-        
-        // Căn chỉnh wrapper này lên sát mép trên
-        badgeWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
-        badgeWrapper.setAlignmentY(Component.TOP_ALIGNMENT);
-
-        // --- 3. Tạo Ảnh Poster (Lớp d??i) ---
-        JLabel lblPoster = new JLabel();
-        lblPoster.setHorizontalAlignment(SwingConstants.CENTER);
-        lblPoster.setVerticalAlignment(SwingConstants.CENTER);
-        
-        // Căn chỉnh ảnh chiếm toàn bộ không gian
-        lblPoster.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lblPoster.setAlignmentY(Component.CENTER_ALIGNMENT);
-
-        try {
-            URL url = new URL(m.posterurl);
-            Image img = ImageIO.read(url).getScaledInstance(300, 200, Image.SCALE_SMOOTH);
-            lblPoster.setIcon(new ImageIcon(img));
-        } catch (Exception e) {
-            lblPoster.setText("No Image");
-            lblPoster.setForeground(Color.DARK_GRAY);
-        }
-
-        // --- 4. Gắn vào Container ---
-        // Thứ tự gắn RẤT QUAN TRỌNG: Component add trước sẽ nằm ở LỚP TRÊN cùng
-        posterContainer.add(badgeWrapper); // Nằm trên
-        posterContainer.add(lblPoster);    // Nằm dưới
-
         card.add(posterContainer);
         // card.add(poster);
 
@@ -539,7 +537,7 @@ public class CinemaFinderUI extends JFrame {
         subTitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subTitle.setForeground(TEXT_MUTED);
         
-        JLabel details = new JLabel(" " + m.duration + "  •  " + m.ageRating);
+        JLabel details = new JLabel(" " + m.duration + "  •  " + (m.ageRating == 0 ? "P" : m.ageRating + "+"));
         try {
             ImageIcon clockicon = new ImageIcon("image/time.png");
             details.setIcon(clockicon);
