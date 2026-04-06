@@ -1,3 +1,4 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -473,26 +475,58 @@ public class CinemaFinderUI extends JFrame {
             }
         });
 
-        JPanel poster = new JPanel(new BorderLayout());
-        poster.setBackground(Color.DARK_GRAY);
-        poster.setPreferredSize(new Dimension(250, 200));
-        poster.setMaximumSize(new Dimension(500, 200));
-        
+        // --- 1. Tạo container hỗ trợ xếp chồng (Overlay) ---
+        JPanel posterContainer = new JPanel();
+        posterContainer.setLayout(new OverlayLayout(posterContainer));
+        posterContainer.setPreferredSize(new Dimension(250, 200));
+        posterContainer.setMaximumSize(new Dimension(500, 200));
+        posterContainer.setOpaque(false);
+
+        // --- 2. Tạo Badge điểm số (Lớp trên) ---
         JPanel ratingBadge = new RoundedPanel(8, new Color(255, 193, 7));
         try {
             ImageIcon staricon = new ImageIcon("image/star.png");
-            JLabel lblRating = new JLabel(" " + 8);
+            JLabel lblRating = new JLabel(" " + 8); // Thay hardcode 8 bằng biến m.rating
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);
         } catch(Exception e) {
             ratingBadge.add(new JLabel("⭐ " + 8));
         }
         
-        JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        badgeWrapper.setOpaque(false);
+        // Tạo một wrapper vô hình để đẩy Badge lên góc trên - phải
+        JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10)); // Canh phải, lề 10px
+        badgeWrapper.setOpaque(false); // Quan trọng: làm trong suốt
         badgeWrapper.add(ratingBadge);
-        poster.add(badgeWrapper, BorderLayout.NORTH);
-        card.add(poster);
+        
+        // Căn chỉnh wrapper này lên sát mép trên
+        badgeWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        badgeWrapper.setAlignmentY(Component.TOP_ALIGNMENT);
+
+        // --- 3. Tạo Ảnh Poster (Lớp d??i) ---
+        JLabel lblPoster = new JLabel();
+        lblPoster.setHorizontalAlignment(SwingConstants.CENTER);
+        lblPoster.setVerticalAlignment(SwingConstants.CENTER);
+        
+        // Căn chỉnh ảnh chiếm toàn bộ không gian
+        lblPoster.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblPoster.setAlignmentY(Component.CENTER_ALIGNMENT);
+
+        try {
+            URL url = new URL(m.posterurl);
+            Image img = ImageIO.read(url).getScaledInstance(300, 200, Image.SCALE_SMOOTH);
+            lblPoster.setIcon(new ImageIcon(img));
+        } catch (Exception e) {
+            lblPoster.setText("No Image");
+            lblPoster.setForeground(Color.DARK_GRAY);
+        }
+
+        // --- 4. Gắn vào Container ---
+        // Thứ tự gắn RẤT QUAN TRỌNG: Component add trước sẽ nằm ở LỚP TRÊN cùng
+        posterContainer.add(badgeWrapper); // Nằm trên
+        posterContainer.add(lblPoster);    // Nằm dưới
+
+        card.add(posterContainer);
+        // card.add(poster);
 
         JPanel info = new JPanel();
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
