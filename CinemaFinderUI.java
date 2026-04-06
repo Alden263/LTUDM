@@ -51,7 +51,8 @@ public class CinemaFinderUI extends JFrame {
         String api = "https://retoolapi.dev/lKNfWn/data/1";
         Document doc = Jsoup.connect(api).ignoreContentType(true).ignoreHttpErrors(true).header("Content-Type", "application/json").method(Connection.Method.GET).execute().parse();
         JSONObject json = new JSONObject(doc.text());
-        System.out.println(json.get("ip"));
+        ipserver = json.get("ip").toString();
+        System.out.println("IP Server: " + ipserver);
     }
     public CinemaFinderUI() {
         try {
