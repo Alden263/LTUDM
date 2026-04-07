@@ -1,8 +1,9 @@
 class Movie {
-        String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl;
+        String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl, banner;
         int duration, ageRating, idmovie;
 
-        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String posterurl) {
+        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String posterurl, String banner) {
+            this.idmovie = idmovie;
             this.titleVn = titleVn;
             this.titleEn = titleEn;
             this.duration = duration;
@@ -13,6 +14,7 @@ class Movie {
             this.actors = actors;
             this.releaseDate = releaseDate;
             this.posterurl = posterurl;
+            this.banner = banner;
         }
         public Movie() {
         }

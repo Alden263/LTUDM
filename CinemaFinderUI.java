@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class CinemaFinderUI extends JFrame {
     private JPanel listPanel;
-    private JPanel grid;
+    private JPanel grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
     private LinkedHashMap<Integer, String> branches;
 
     // --- CÁC MÀU SẮC CHỦ ĐẠO TỪ THIẾT KẾ ---
@@ -213,9 +213,9 @@ public class CinemaFinderUI extends JFrame {
                     selectedIndex = branches.isEmpty() ? 0 : branches.keySet().iterator().next();
                     // Xóa nội dung cũ và render lại 
                     renderBranches(listPanel, branches, cinemaId);
-                    listPanel.revalidate();
-                    listPanel.repaint();
                 }
+                listPanel.revalidate();
+                listPanel.repaint();
                 
             } catch (Exception e) {
                 System.err.println("Lỗi xử lý UI sau khi nhận dữ liệu: " + e.getMessage());
@@ -379,6 +379,15 @@ public class CinemaFinderUI extends JFrame {
 
     // #region Lấy list phim
     private void getlistmovie(int cinemaId){
+        if (grid != null) {
+            grid.removeAll();
+            JLabel lblLoading = new JLabel("Đang tải các bộ phim, vui lòng chờ...");
+            lblLoading.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+            lblLoading.setForeground(Color.GRAY); // Hoặc màu TEXT_MUTED của bạn
+            grid.add(lblLoading);
+            grid.revalidate();
+            grid.repaint();
+        }
         SwingWorker<List<Movie>, Void> worker = new SwingWorker<List<Movie>, Void>() {
             protected List<Movie> doInBackground(){
                 List<Movie> movies = new ArrayList<>();
@@ -407,13 +416,14 @@ public class CinemaFinderUI extends JFrame {
                             // movieJson.getString("actors"),
                             "N/A",
                             movieJson.getString("publishDate"),
-                            movieJson.getJSONObject("images").getString("type1_size2")
+                            movieJson.getJSONObject("images").getString("type1_size2"),
+                            movieJson.getJSONObject("images").getString("banner")
                         );
                         movies.add(movie);
                     }
 
-                } catch (Exception e) {
-                    e.printStackTrace();
+                } catch (IOException e) {
+                    System.err.println("Lỗi kết nối tới Server: " + e.getMessage());
                 }
                 return movies;
             }
@@ -448,16 +458,7 @@ public class CinemaFinderUI extends JFrame {
         JLabel lblTitle = new JLabel("Phim đang chiếu");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         panel.add(lblTitle, BorderLayout.NORTH);
-
-        grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
         grid.setBackground(BG_MAIN);
-
-        // Tạo dữ liệu giả bằng List
-        List<Movie> movies = new ArrayList<>();
-        JLabel lblEmpty = new JLabel("Không tìm thấy phim nào cho rạp này.");
-        lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-        lblEmpty.setForeground(TEXT_MUTED);
-        grid.add(lblEmpty);
         panel.add(grid, BorderLayout.CENTER);
         return panel;
     }
@@ -512,12 +513,12 @@ public class CinemaFinderUI extends JFrame {
         try {
             // Chỉnh lại kích thước icon ngôi sao cho gọn gàng hơn
             ImageIcon staricon = new ImageIcon(new ImageIcon("image/star.png").getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH));
-            JLabel lblRating = new JLabel(" " + 8); 
+            JLabel lblRating = new JLabel(); 
             lblRating.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);
         } catch(Exception e) {
-            ratingBadge.add(new JLabel("⭐ " + 8));
+            ratingBadge.add(new JLabel("⭐"));
         }
 
         // --- 4. Gắn huy hiệu vào container ---

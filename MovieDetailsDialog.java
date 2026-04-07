@@ -1,6 +1,8 @@
 
 import java.awt.*;
+import java.net.URL;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 // import javax.swing.BoxLayout;
 // import javax.swing.JButton;
@@ -44,8 +46,29 @@ class MovieDetailsDialog extends JDialog {
         layeredPane.setPreferredSize(new Dimension(900, 250));
 
         // Ảnh Cover (Giả định bằng màu)
-        JPanel coverPanel = new JPanel(new BorderLayout());
-        coverPanel.setBackground(new Color(60, 60, 60));
+        Image loadedBanner = null;
+        try {
+            loadedBanner = ImageIO.read(new URL(m.banner));
+        } catch (Exception e) {
+            System.err.println("Lỗi tải ảnh banner: " + e.getMessage());
+        }
+        final Image bannerImage = loadedBanner;
+
+        // 1. Dùng JPanel và Override paintComponent để vẽ nền
+        JPanel coverPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (bannerImage != null) {
+                    // Vẽ ảnh lấp đầy toàn bộ coverPanel
+                    g.drawImage(bannerImage, 0, 0, getWidth(), getHeight(), this);
+                } else {
+                    // Nếu lỗi mạng, hiển thị nền xám dự phòng
+                    g.setColor(new Color(60, 60, 60));
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            }
+        };
         coverPanel.setBounds(0, 0, 900, 250);
         
         JPanel titleOverlay = new JPanel();
