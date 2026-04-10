@@ -580,18 +580,18 @@ public class CinemaFinderUI extends JFrame {
         JPanel footer = new JPanel();
         footer.setLayout(new BoxLayout(footer, BoxLayout.Y_AXIS));
 
-        JPanel status = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
-        status.setBackground(new Color(232, 245, 233));
-        JLabel lblStatus = new JLabel("<html><b style='color:#2E7D32;'>● Trạng thái kết nối</b><br/>Đang kết nối với server - Dữ liệu được mã hóa bằng AES-256<br/><span style='color:#757575'>Server đang trích xuất dữ liệu từ: Lotte Cinema, Galaxy Cinema</span></html>");
-        lblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        status.add(lblStatus);
+        // JPanel status = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+        // status.setBackground(new Color(232, 245, 233));
+        // JLabel lblStatus = new JLabel("<html><b style='color:#2E7D32;'>● Trạng thái kết nối</b><br/>Đang kết nối với server - Dữ liệu được mã hóa bằng AES-256<br/><span style='color:#757575'>Server đang trích xuất dữ liệu từ: Lotte Cinema, Galaxy Cinema</span></html>");
+        // lblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        // status.add(lblStatus);
 
         JPanel copy = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 15));
         copy.setBackground(new Color(38, 50, 56));
         JLabel lblCopy = new JLabel("<html><center><span style='color:white;'>© 2026 Cinema Finder - Ứng dụng tìm kiếm phim và lịch chiếu</span><br/><span style='color:#B0BEC5; font-size:10px;'>Dữ liệu được trích xuất từ các website rạp chiếu phim và được mã hóa an toàn</span></center></html>");
         copy.add(lblCopy);
 
-        footer.add(status);
+        // footer.add(status);
         footer.add(copy);
         return footer;
     }
