@@ -1,6 +1,14 @@
 package client;
 
+import javafx.embed.swing.JFXPanel;
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
+import javafx.scene.Scene;
+import javafx.scene.web.WebView;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.net.URI;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
@@ -143,6 +151,7 @@ class MovieDetailsDialog extends JDialog {
         
         // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");
+        btnTrailer.addActionListener(e -> openTrailerWindow(m.trailer));
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
         btnTrailer.setPreferredSize(new Dimension(110, 35));
         btnTrailer.setFont(new Font("Arial", Font.BOLD, 15));
@@ -302,4 +311,63 @@ class MovieDetailsDialog extends JDialog {
         
         return p;
     }
+    private void openTrailerWindow(String url) {
+        if (url == null || url.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Phim này hiện chưa có trailer!");
+            return;
+        }
+
+        // 1. Tạo một cửa sổ phụ (Dialog) của App
+        JDialog trailerDialog = new JDialog(this, "Trailer Player", true);
+        trailerDialog.setSize(960, 580);
+        trailerDialog.setLocationRelativeTo(this);
+        trailerDialog.setLayout(new BorderLayout());
+
+        // 2. Tạo JFXPanel (Thành phần của JavaFX có thể bỏ vào Swing)
+        final JFXPanel jfxPanel = new JFXPanel();
+        trailerDialog.add(jfxPanel, BorderLayout.CENTER);
+
+        // 3. Khởi tạo WebView để load YouTube
+        Platform.runLater(() -> {
+            WebView webView = new WebView();
+
+            // Chuyển link watch?v= sang embed/ để YouTube không chặn
+            String embedUrl = url.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+            webView.getEngine().setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            webView.getEngine().load(embedUrl);
+
+            // Gắn webview vào scene của JavaFX
+            jfxPanel.setScene(new Scene(webView));
+        });
+
+        // 4. Khi đóng Dialog thì phải dừng video ngay (tránh việc tắt app rồi mà vẫn nghe tiếng)
+        trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                javafx.application.Platform.runLater(() -> {
+                    // Giải phóng WebView để lần sau không bị lỗi 153 hoặc treo luồng
+
+                    jfxPanel.setScene(null);
+                });
+                trailerDialog.dispose();
+            }
+        });
+
+        trailerDialog.setVisible(true);
+    }
+//private void openTrailerWindow(String url) {
+//    if (url == null || url.isEmpty()) {
+//        JOptionPane.showMessageDialog(this, "Phim này hiện chưa có trailer!");
+//        return;
+//    }
+//
+//    try {
+//        // Lệnh này yêu cầu Windows/MacOS mở trình duyệt mặc định để truy cập link
+//        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+//    } catch (Exception e) {
+//        e.printStackTrace();
+//        JOptionPane.showMessageDialog(this, "Không thể mở trình duyệt: " + e.getMessage());
+//    }
+//}
+
 }

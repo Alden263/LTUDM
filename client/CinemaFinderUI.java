@@ -405,6 +405,7 @@ public class CinemaFinderUI extends JFrame {
                     JSONArray data = json.getJSONArray("data");
                     for (int i = 0; i < data.length(); i++) {
                         JSONObject movieJson = data.getJSONObject(i);
+                        System.out.println(">>> CLIENT NHẬN ĐƯỢC: " + movieJson.optString("nameEN") + " | Link: " + movieJson.optString("trailer"));
                         Movie movie = new Movie(
                             movieJson.getInt("id"),
                             movieJson.getString("nameVI"),
@@ -418,7 +419,8 @@ public class CinemaFinderUI extends JFrame {
                             "N/A",
                             movieJson.getString("publishDate"),
                             movieJson.getJSONObject("images").getString("type1_size2"),
-                            movieJson.getJSONObject("images").getString("banner")
+                            movieJson.getJSONObject("images").getString("banner"),
+                            movieJson.optString("trailer","")
                         );
                         movies.add(movie);
                     }

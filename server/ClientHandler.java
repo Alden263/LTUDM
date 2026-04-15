@@ -114,6 +114,15 @@ public class ClientHandler implements Runnable {
 
             JSONObject data = json.getJSONObject("data");
             JSONArray films = data.getJSONArray("films");
+            for (int i=0;i< films.length();i++){
+                JSONObject seperateFilm=films.getJSONObject(i);
+                String mediaID = seperateFilm.optString("mediaId", "");
+                System.out.println(mediaID);
+                String trailerURL="https://www.youtube.com/watch?v="+mediaID;
+                seperateFilm.put("trailer",trailerURL);
+
+            }
+
             return getactor(films);
             // return new JSONObject().put("films", films).put("status", "success");
         } catch(IOException e){
@@ -144,4 +153,7 @@ public class ClientHandler implements Runnable {
             return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
         }
     }
+//    public JSONObject getTrailer(){
+//
+//    }
 }

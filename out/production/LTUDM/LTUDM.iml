@@ -9,5 +9,25 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="json-20230618" level="project" />
     <orderEntry type="library" name="jsoup-1.22.1" level="project" />
+    <orderEntry type="library" name="javaFX" level="application" />
+    <orderEntry type="library" exported="" name="lib" level="project" />
+    <orderEntry type="module-library" exported="">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../javafx-sdk-21.0.10/lib/javafx-swt.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" exported="" scope="RUNTIME">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../javafx-sdk-21.0.10/lib/javafx.web.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>

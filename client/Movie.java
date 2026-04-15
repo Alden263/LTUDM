@@ -1,9 +1,9 @@
 package client;
 class Movie {
-        String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl, banner;
+        String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl, banner, trailer;
         int duration, ageRating, idmovie;
 
-        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String posterurl, String banner) {
+        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String posterurl, String banner, String trailer) {
             this.idmovie = idmovie;
             this.titleVn = titleVn;
             this.titleEn = titleEn;
@@ -16,6 +16,7 @@ class Movie {
             this.releaseDate = releaseDate;
             this.posterurl = posterurl;
             this.banner = banner;
+            this.trailer=trailer;
         }
         public Movie() {
         }
