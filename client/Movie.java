@@ -1,3 +1,4 @@
+package client;
 class Movie {
         String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl, banner;
         int duration, ageRating, idmovie;
