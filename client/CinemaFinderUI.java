@@ -1,4 +1,5 @@
 package client;
+import javax.crypto.SecretKey;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -37,6 +38,7 @@ public class CinemaFinderUI extends JFrame {
     private JPanel listPanel;
     private JPanel grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
     private LinkedHashMap<Integer, String> branches;
+    private static final String SERVER_PUBLIC_KEY_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyIHQv416vWEdZeDzpiN0RavmUAA/YFjvTcL24rtJzqCjP+vqa9IQGFQElfBEvOjxatzr/R+EUytJva9rRtTFu5KY2KM7Q9gCqe/FKu48tiFE6JX7FBiEUiM/tG2bN9sEQzX9f6tHRSL5wdkGbJXsyuwdltfFzLfMZLWTG+0j8rNfJYU89D5eN76ezSWpvmsxPYmUZWsqxOnZ+4LvNgAiFlzjueSBaiwoSg+ibZnGpF4Z3FF2Pq2QMuUs5KAFSArZ5d+aQGUGYgGRKo7/wKVXy7TOaW6aLtXD+wguLI43hnUbCEWpTzhpws1q9Hf55yAli5DRZsrBhOP7P3MY0/aILwIDAQAB";
 
     // --- CÁC MÀU SẮC CHỦ ĐẠO TỪ THIẾT KẾ ---
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
@@ -172,11 +174,16 @@ public class CinemaFinderUI extends JFrame {
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                 
+                SecretKey sessionKey = CryptoManager.generateSessionKey();
                 // Gửi yêu cầu lấy danh sách rạp theo loại
-                out.println("GET_CINEMAS|" + cinemaId);
+                String command = "GET_CINEMAS|" + cinemaId;
+                String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                out.println(packet);
+
                 
                 String response = in.readLine();
-                JSONObject json = new JSONObject(response);
+                String jsonresponse = CryptoManager.decryptServerResponse(response, sessionKey);
+                JSONObject json = new JSONObject(jsonresponse);
                 String status = json.getString("status"); 
                 if(status.equals("error")){
                     return new LinkedHashMap<>(); 
@@ -185,7 +192,7 @@ public class CinemaFinderUI extends JFrame {
                 for(String key : data.keySet()){
                     rawData.put(Integer.parseInt(key), data.getString(key));
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.err.println("Lỗi kết nối tới Server: " + e.getMessage());
             }
             
@@ -395,9 +402,13 @@ public class CinemaFinderUI extends JFrame {
                 try (Socket socket = new Socket(ipserver, 4000);
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                    out.println("GET_MOVIES|" + cinemaId);
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String command = "GET_MOVIES|" + cinemaId;
+                    String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    out.println(packet);
                     String response = in.readLine();
-                    JSONObject json = new JSONObject(response);
+                    String jsonresponse = CryptoManager.decryptServerResponse(response, sessionKey);
+                    JSONObject json = new JSONObject(jsonresponse);
                     String status = json.getString("status"); 
                     if(status.equals("error")){
                         return new ArrayList<>(); 
@@ -423,7 +434,7 @@ public class CinemaFinderUI extends JFrame {
                         movies.add(movie);
                     }
 
-                } catch (IOException e) {
+                } catch (Exception e) {
                     System.err.println("Lỗi kết nối tới Server: " + e.getMessage());
                 }
                 return movies;
