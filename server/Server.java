@@ -62,9 +62,9 @@ public class Server {
     public void shutdownExecutor(ExecutorService pool){
         pool.shutdown();
         try{
-            if(!pool.awaitTermination(60, TimeUnit.SECONDS)){
+            if(!pool.awaitTermination(5, TimeUnit.SECONDS)){
                 pool.shutdownNow();
-                if(!pool.awaitTermination(60, TimeUnit.SECONDS)){
+                if(!pool.awaitTermination(5, TimeUnit.SECONDS)){
                     System.err.println("ExecutorService không thể dừng hẳn.");
                 }
             }
