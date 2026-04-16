@@ -114,14 +114,10 @@ public class ClientHandler implements Runnable {
 
             JSONObject data = json.getJSONObject("data");
             JSONArray films = data.getJSONArray("films");
-            for (int i=0;i< films.length();i++){
-                JSONObject seperateFilm=films.getJSONObject(i);
-                String mediaID = seperateFilm.optString("mediaId", "");
-                System.out.println(mediaID);
-                String trailerURL="https://www.youtube.com/watch?v="+mediaID;
-                seperateFilm.put("trailer",trailerURL);
-
-            }
+//            for (int i=0;i< films.length();i++){
+//
+//
+//            }
 
             return getactor(films);
             // return new JSONObject().put("films", films).put("status", "success");
@@ -139,6 +135,11 @@ public class ClientHandler implements Runnable {
             for(int i=0; i < films.length(); i++){
                 JSONObject film = films.getJSONObject(i);
                 String titleEn = film.getString("nameEN");
+
+                String mediaID = film.optString("mediaId", "");
+//                System.out.println(mediaID);
+                String trailerURL="https://www.youtube.com/watch?v="+mediaID;
+                film.put("trailer",trailerURL);
                 for(int j=0; j < listmovie.length(); j++){
                     JSONObject movie = listmovie.getJSONObject(j);
                     if(movie.getString("name_en").contains(titleEn.toUpperCase())){

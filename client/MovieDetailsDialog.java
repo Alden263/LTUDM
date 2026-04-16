@@ -4,6 +4,7 @@ import javafx.embed.swing.JFXPanel;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
+import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -311,45 +312,87 @@ class MovieDetailsDialog extends JDialog {
         
         return p;
     }
-    private void openTrailerWindow(String url) {
-        if (url == null || url.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Phim này hiện chưa có trailer!");
+    private void openTrailerWindow(String fullUrlFromServer) {
+        if (fullUrlFromServer == null || fullUrlFromServer.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Link trailer trống!");
             return;
         }
 
-        // 1. Tạo một cửa sổ phụ (Dialog) của App
-        JDialog trailerDialog = new JDialog(this, "Trailer Player", true);
-        trailerDialog.setSize(960, 580);
+        // 1. Tách lấy ID từ link Server trả về (Xử lý được cả link dài và link rút gọn)
+        String videoId = "";
+        try {
+            if (fullUrlFromServer.contains("v=")) {
+                videoId = fullUrlFromServer.split("v=")[1].split("&")[0];
+            } else if (fullUrlFromServer.contains("youtu.be/")) {
+                videoId = fullUrlFromServer.split("youtu.be/")[1].split("\\?")[0];
+            } else {
+                videoId = fullUrlFromServer; // Trường hợp server trả về mỗi ID
+            }
+        } catch (Exception e) {
+            videoId = "M7lc1UVf-VE"; // ID dự phòng nếu lỗi
+        }
+
+        JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
+        trailerDialog.setSize(1000, 600);
         trailerDialog.setLocationRelativeTo(this);
         trailerDialog.setLayout(new BorderLayout());
 
-        // 2. Tạo JFXPanel (Thành phần của JavaFX có thể bỏ vào Swing)
-        final JFXPanel jfxPanel = new JFXPanel();
+        final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
         trailerDialog.add(jfxPanel, BorderLayout.CENTER);
 
-        // 3. Khởi tạo WebView để load YouTube
-        Platform.runLater(() -> {
-            WebView webView = new WebView();
+        final String finalId = videoId;
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
+            javafx.scene.web.WebEngine engine = webView.getEngine();
 
-            // Chuyển link watch?v= sang embed/ để YouTube không chặn
-            String embedUrl = url.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
-            webView.getEngine().setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-            webView.getEngine().load(embedUrl);
+            // 2. Nhúng mã HTML API bạn vừa gửi nhưng đã được "Full-hóa" bằng CSS
+            String htmlContent = "<!DOCTYPE html><html>" +
+                    "<head><style>" +
+                    "  /* Ép video tràn 100% không dư 1 pixel nào */ " +
+                    "  body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }" +
+                    "  #player { width: 100vw; height: 100vh; }" +
+                    "</style></head>" +
+                    "<body>" +
+                    "  <div id='player'></div>" +
+                    "  <script>" +
+                    "    var tag = document.createElement('script');" +
+                    "    tag.src = 'https://www.youtube.com/iframe_api';" +
+                    "    var firstScriptTag = document.getElementsByTagName('script')[0];" +
+                    "    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);" +
+                    "    var player;" +
+                    "    function onYouTubeIframeAPIReady() {" +
+                    "      player = new YT.Player('player', {" +
+                    "        height: '100%', width: '100%'," +
+                    "        videoId: '" + finalId + "'," +
+                    "        playerVars: { " +
+                    "          'autoplay': 1, " +
+                                "'origin': 'https://www.youtube.com'"+
+                    "          'rel': 0, " +
+                    "          'modestbranding': 1," +
+                    "          'iv_load_policy': 3" +
+                    "        }," +
+                    "        events: { 'onReady': onPlayerReady }" +
+                    "      });" +
+                    "    }" +
+                    "    function onPlayerReady(event) { event.target.playVideo(); }" +
+                    "  </script>" +
+                    "</body></html>";
 
-            // Gắn webview vào scene của JavaFX
-            jfxPanel.setScene(new Scene(webView));
+            // Thêm dòng này ngay trước khi loadContent
+            String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+            engine.setUserAgent(chromeAgent);
+            engine.loadContent(htmlContent);
+
+            jfxPanel.setScene(new javafx.scene.Scene(webView));
+            jfxPanel.revalidate();
+            jfxPanel.repaint();
         });
 
-        // 4. Khi đóng Dialog thì phải dừng video ngay (tránh việc tắt app rồi mà vẫn nghe tiếng)
+        // Giải phóng khi đóng cửa sổ
         trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                javafx.application.Platform.runLater(() -> {
-                    // Giải phóng WebView để lần sau không bị lỗi 153 hoặc treo luồng
-
-                    jfxPanel.setScene(null);
-                });
-                trailerDialog.dispose();
+                javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
             }
         });
 
