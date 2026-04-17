@@ -414,13 +414,34 @@ public class CinemaFinderUI extends JFrame {
                             movieJson.getString("category"),
                             movieJson.getString("desc"),
                             movieJson.getString("director"),
-                            movieJson.optString("actors", "N/A"), // Fix lỗi lấy actor bằng optString
+                            movieJson.optString("actors", "Chưa có thông tin diễn viên"),
                             movieJson.getString("publishDate"),
                             movieJson.optString("imdbRating", "N/A"),    // Đọc điểm IMDb
                             movieJson.optString("rottenRating", "N/A"),  // Đọc điểm Rotten
                             movieJson.getJSONObject("images").getString("type1_size2"),
                             movieJson.getJSONObject("images").getString("banner")
                         );
+                        movie.cinemaName = movieJson.optString("cinemaName", "");
+                        movie.cinemaAddress = movieJson.optString("cinemaAddress", "");
+                        movie.provider = movieJson.optString("providerName", movieJson.optString("publisher", ""));
+                        JSONArray sessionGroups = movieJson.optJSONArray("sessionGroups");
+                        if (sessionGroups != null) {
+                            for (int groupIndex = 0; groupIndex < sessionGroups.length(); groupIndex++) {
+                                JSONObject groupJson = sessionGroups.getJSONObject(groupIndex);
+                                Movie.SessionGroup group = new Movie.SessionGroup(groupJson.optString("groupName", "Không rõ định dạng"));
+                                JSONArray sessions = groupJson.optJSONArray("sessions");
+                                if (sessions != null) {
+                                    for (int sessionIndex = 0; sessionIndex < sessions.length(); sessionIndex++) {
+                                        JSONObject sessionJson = sessions.getJSONObject(sessionIndex);
+                                        group.sessions.add(new Movie.SessionTime(
+                                            sessionJson.optString("purchaseDeadline", ""),
+                                            sessionJson.optString("sessionEndTime", "")
+                                        ));
+                                    }
+                                }
+                                movie.sessionGroups.add(group);
+                            }
+                        }
                         movies.add(movie);
                     }
 
