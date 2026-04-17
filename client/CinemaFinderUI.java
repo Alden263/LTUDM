@@ -420,6 +420,27 @@ public class CinemaFinderUI extends JFrame {
                             movieJson.getJSONObject("images").getString("type1_size2"),
                             movieJson.getJSONObject("images").getString("banner")
                         );
+                        movie.cinemaName = movieJson.optString("cinemaName", "");
+                        movie.cinemaAddress = movieJson.optString("cinemaAddress", "");
+                        movie.provider = movieJson.optString("providerName", movieJson.optString("publisher", ""));
+                        JSONArray sessionGroups = movieJson.optJSONArray("sessionGroups");
+                        if (sessionGroups != null) {
+                            for (int groupIndex = 0; groupIndex < sessionGroups.length(); groupIndex++) {
+                                JSONObject groupJson = sessionGroups.getJSONObject(groupIndex);
+                                Movie.SessionGroup group = new Movie.SessionGroup(groupJson.optString("groupName", "Không rõ định dạng"));
+                                JSONArray sessions = groupJson.optJSONArray("sessions");
+                                if (sessions != null) {
+                                    for (int sessionIndex = 0; sessionIndex < sessions.length(); sessionIndex++) {
+                                        JSONObject sessionJson = sessions.getJSONObject(sessionIndex);
+                                        group.sessions.add(new Movie.SessionTime(
+                                            sessionJson.optString("purchaseDeadline", ""),
+                                            sessionJson.optString("sessionEndTime", "")
+                                        ));
+                                    }
+                                }
+                                movie.sessionGroups.add(group);
+                            }
+                        }
                         movies.add(movie);
                     }
 

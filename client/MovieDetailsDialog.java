@@ -2,15 +2,10 @@ package client;
 
 import java.awt.*;
 import java.net.URL;
-
+import java.util.ArrayList;
+import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.*;
-// import javax.swing.BoxLayout;
-// import javax.swing.JButton;
-// import javax.swing.JDialog;
-// import javax.swing.JFrame;
-// import javax.swing.JLayeredPane;
-// import javax.swing.JPanel;
 import javax.swing.border.*;
 
 // import CinemaFinderUI.Movie;
@@ -137,7 +132,7 @@ class MovieDetailsDialog extends JDialog {
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
-        rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
+        rightBottomInfo.add(createInfoBlock("Ngày chiếu", formatDate(m.releaseDate)));
         rightBottomInfo.add(Box.createHorizontalStrut(50));
         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
@@ -174,22 +169,34 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(Box.createVerticalStrut(30));
 
         // Lịch chiếu hôm nay
-        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
+        String today = java.time.LocalDate.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
+        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay " + today);
         lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         contentPanel.add(lblShowtimes);
         contentPanel.add(Box.createVerticalStrut(15));
 
-        // Ép trái cho block lịch chiếu 1
-        JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
+        // Ép trái cho block lịch chiếu
+        List<String> times = new ArrayList<>();
+        for (Movie.SessionGroup group : m.sessionGroups) {
+            for (Movie.SessionTime session : group.sessions) {
+                String start = formatTime(session.startTime);
+                String end = formatTime(session.endTime);
+                if (!start.isEmpty() && !end.isEmpty()) {
+                    times.add(start + "~" + end);
+                }
+            }
+        }
+
+        JPanel showtime1 = createCinemaShowtimeBlock(
+            m.cinemaName,
+            m.cinemaAddress,
+            m.provider,
+            times.toArray(new String[0])
+        );
         showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         contentPanel.add(showtime1);
-        contentPanel.add(Box.createVerticalStrut(15));
-        
-        // Ép trái cho block lịch chiếu 2
-        JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
-        showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-        contentPanel.add(showtime2);
 
         JScrollPane scrollPane = new JScrollPane(contentPanel);
         scrollPane.setBorder(null);
@@ -236,6 +243,7 @@ class MovieDetailsDialog extends JDialog {
         return p;
     }
 
+    
     private JPanel createReviewCard(String source, String text) {
         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
@@ -252,54 +260,115 @@ class MovieDetailsDialog extends JDialog {
         return p;
     }
 
-    private JPanel createCinemaShowtimeBlock(String name, String address, String[] times) {
+    private JPanel createCinemaShowtimeBlock(String name, String address, String providerName, String[] times) {
         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 20, 15, 20)));
-        
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COLOR),
+            new EmptyBorder(18, 20, 18, 20)
+        ));
+
+        JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        headerRow.setOpaque(false);
+        headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lblLogo = new JLabel();
+        try {
+            String logoPath = resolveCinemaLogo(providerName, name);
+            ImageIcon icon = new ImageIcon(new ImageIcon(logoPath)
+                .getImage().getScaledInstance(44, 28, Image.SCALE_SMOOTH));
+            lblLogo.setIcon(icon);
+        } catch (Exception e) {
+            lblLogo.setPreferredSize(new Dimension(44, 28));
+        }
+
+        JPanel headerText = new JPanel();
+        headerText.setLayout(new BoxLayout(headerText, BoxLayout.Y_AXIS));
+        headerText.setOpaque(false);
+
         JLabel lblName = new JLabel(name);
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblName.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
 
         JLabel lblAddr = new JLabel(address);
         lblAddr.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblAddr.setForeground(TEXT_MUTED);
         lblAddr.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblAddr.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
-        
-        p.add(lblName);
-        p.add(lblAddr);
-        p.add(Box.createVerticalStrut(15));
-        
-        JPanel timeGrid = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        timeGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        timeGrid.setOpaque(false);
-        for (String t : times) {
-            RoundedPanel timeBtn = new RoundedPanel(8, Color.WHITE);
-            timeBtn.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
-            timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.Y_AXIS));
-            timeBtn.setBorder(BorderFactory.createCompoundBorder(timeBtn.getBorder(), new EmptyBorder(5, 10, 5, 10)));
-            
-            JLabel lblT = new JLabel(t);
-            lblT.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            lblT.setForeground(PRIMARY_BLUE);
-            lblT.setAlignmentX(Component.CENTER_ALIGNMENT);
-            JLabel lblFormat = new JLabel("2D Phụ đề");
-            lblFormat.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            lblFormat.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel lblPrice = new JLabel("80.000đ");
-            lblPrice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            lblPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-            
+        headerText.add(lblName);
+        headerText.add(Box.createVerticalStrut(4));
+        headerText.add(lblAddr);
+
+        headerRow.add(lblLogo);
+        headerRow.add(headerText);
+
+        p.add(headerRow);
+        p.add(Box.createVerticalStrut(12));
+
+        JLabel lblGroup = new JLabel("2D Phụ đề Eng&Viet");
+        lblGroup.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblGroup.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(lblGroup);
+        p.add(Box.createVerticalStrut(10));
+
+        JPanel timeRow = new JPanel(new GridLayout(0, 5, 10, 10));
+        timeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        timeRow.setOpaque(false);
+        for (String t : times) {
+            RoundedPanel timeBtn = new RoundedPanel(16, Color.WHITE);
+            timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.X_AXIS));
+            timeBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 210, 225), 1),
+                new EmptyBorder(8, 14, 8, 14)
+            ));
+
+            String displayTime = t.replace("~", " ~ ");
+
+            JLabel lblT = new JLabel(displayTime);
+            lblT.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblT.setForeground(PRIMARY_BLUE);
+
             timeBtn.add(lblT);
-            timeBtn.add(lblFormat);
-            timeBtn.add(lblPrice);
-            timeGrid.add(timeBtn);
+            timeRow.add(timeBtn);
         }
-        p.add(timeGrid);
-        
+        p.add(timeRow);
+
         return p;
+    }
+
+    private String formatDate(String ymd) {
+        try {
+            if (ymd != null && ymd.length() >= 10) {
+                return java.time.LocalDate.parse(ymd.substring(0, 10))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
+            }
+            return ymd == null ? "" : ymd;
+        } catch (Exception e) {
+            return ymd == null ? "" : ymd;
+        }
+    }
+
+    private String formatTime(String dt) {
+        try {
+            if (dt == null || dt.isEmpty()) {
+                return "";
+            }
+            return java.time.LocalDateTime.parse(dt.replace(" ", "T"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+            return dt == null ? "" : dt;
+        }
+    }
+
+    private String resolveCinemaLogo(String providerName, String cinemaName) {
+        String provider = providerName == null ? "" : providerName.toLowerCase();
+        String cinema = cinemaName == null ? "" : cinemaName.toLowerCase();
+        if (provider.contains("galaxy") || cinema.contains("galaxy")) {
+            return "image/galaxy_logo.png";
+        }
+        if (provider.contains("lotte") || cinema.contains("lotte")) {
+            return "image/lotte_logo.png";
+        }
+        return "image/cgv_logo.png";
     }
 }
