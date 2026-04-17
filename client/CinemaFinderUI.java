@@ -414,9 +414,10 @@ public class CinemaFinderUI extends JFrame {
                             movieJson.getString("category"),
                             movieJson.getString("desc"),
                             movieJson.getString("director"),
-                            // movieJson.getString("actors"),
-                            "N/A",
+                            movieJson.optString("actors", "N/A"), // Fix lỗi lấy actor bằng optString
                             movieJson.getString("publishDate"),
+                            movieJson.optString("imdbRating", "N/A"),    // Đọc điểm IMDb
+                            movieJson.optString("rottenRating", "N/A"),  // Đọc điểm Rotten
                             movieJson.getJSONObject("images").getString("type1_size2"),
                             movieJson.getJSONObject("images").getString("banner")
                         );
@@ -473,7 +474,7 @@ public class CinemaFinderUI extends JFrame {
         card.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                new MovieDetailsDialog(CinemaFinderUI.this, m).setVisible(true);
+                new MovieDetailsDialog(CinemaFinderUI.this, m, ipserver).setVisible(true);
             }
         });
 
@@ -514,7 +515,7 @@ public class CinemaFinderUI extends JFrame {
         try {
             // Chỉnh lại kích thước icon ngôi sao cho gọn gàng hơn
             ImageIcon staricon = new ImageIcon(new ImageIcon("image/star.png").getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH));
-            JLabel lblRating = new JLabel(); 
+            JLabel lblRating = new JLabel(m.imdbRating.equals("N/A") ? "N/A" : m.imdbRating);
             lblRating.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);

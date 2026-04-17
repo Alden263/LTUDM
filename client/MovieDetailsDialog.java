@@ -1,37 +1,41 @@
 package client;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-// import javax.swing.BoxLayout;
-// import javax.swing.JButton;
-// import javax.swing.JDialog;
-// import javax.swing.JFrame;
-// import javax.swing.JLayeredPane;
-// import javax.swing.JPanel;
 import javax.swing.border.*;
 
-// import CinemaFinderUI.Movie;
-// import CinemaFinderUI.RoundedPanel;
+import org.json.JSONObject;
 
 class MovieDetailsDialog extends JDialog {
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
-    public MovieDetailsDialog(JFrame parent, Movie m) {
+    
+    // ĐƯA CÁC BIẾN NÀY LÊN ĐẦU ĐỂ KHÔNG BỊ LỖI SCOPE
+    private JTextArea txtPlot;
+    private JPanel reviewPanel;
+    private String ipserver;
+
+    // THÊM THAM SỐ ipserver VÀO CONSTRUCTOR
+    public MovieDetailsDialog(JFrame parent, Movie m, String ipserver) {
         super(parent, true);
+        this.ipserver = ipserver; // Nhận IP từ màn hình chính truyền sang
+        
         setSize(900, 700);
         setLocationRelativeTo(parent);
-        setUndecorated(true); // Bỏ thanh title bar mặc định
+        setUndecorated(true); 
         
-        // Container chính bo góc
         RoundedPanel mainPanel = new RoundedPanel(20, Color.WHITE);
         mainPanel.setLayout(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-        // Nút đóng (X)
         JButton btnClose = new JButton("X");
         btnClose.setBounds(840, 0, 60, 60);
         btnClose.setContentAreaFilled(false);
@@ -42,11 +46,9 @@ class MovieDetailsDialog extends JDialog {
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dispose());
 
-        // JLayeredPane để overlay nút X lên trên ảnh Cover
         JLayeredPane layeredPane = new JLayeredPane();
         layeredPane.setPreferredSize(new Dimension(900, 250));
 
-        // Ảnh Cover (Giả định bằng màu)
         Image loadedBanner = null;
         try {
             loadedBanner = ImageIO.read(new URL(m.banner));
@@ -55,16 +57,13 @@ class MovieDetailsDialog extends JDialog {
         }
         final Image bannerImage = loadedBanner;
 
-        // 1. Dùng JPanel và Override paintComponent để vẽ nền
         JPanel coverPanel = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 if (bannerImage != null) {
-                    // Vẽ ảnh lấp đầy toàn bộ coverPanel
                     g.drawImage(bannerImage, 0, 0, getWidth(), getHeight(), this);
                 } else {
-                    // Nếu lỗi mạng, hiển thị nền xám dự phòng
                     g.setColor(new Color(60, 60, 60));
                     g.fillRect(0, 0, getWidth(), getHeight());
                 }
@@ -93,55 +92,56 @@ class MovieDetailsDialog extends JDialog {
 
         mainPanel.add(layeredPane, BorderLayout.NORTH);
 
-        // Nội dung chi tiết (Cuộn được)
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(new EmptyBorder(20, 30, 30, 30));
 
-        // Thống kê (Stats)
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         statsPanel.setOpaque(false);
         statsPanel.setMaximumSize(new Dimension(900, 60));
-        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", 8 + "/10", new Color(255, 248, 225)));
-        statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
-        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration + " phút", new Color(227, 242, 253)));
-        contentPanel.add(statsPanel);
-        contentPanel.add(Box.createVerticalStrut(25));
 
-        // Nội dung phim
+        String imdbDisplay = m.imdbRating.equals("N/A") ? "N/A" : m.imdbRating + "/10";
+        String rottenDisplay = m.rottenRating;
+
+        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " TMDB", imdbDisplay, new Color(255, 248, 225)));
+        statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), "Số Lượng Votes", rottenDisplay, new Color(255, 235, 238)));
+        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời Lượng", m.duration + " phút", new Color(227, 242, 253)));
+
+        contentPanel.add(statsPanel);
+
         JLabel lblPlotTitle = new JLabel("Nội dung phim");
         lblPlotTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã có sẵn
+        lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblPlotTitle);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        JTextArea txtPlot = new JTextArea("Câu chuyện về nhà vật lý lý thuyết người Mỹ J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử. Bộ phim khám phá cuộc đời và sự nghiệp của Oppenheimer, bao gồm cả thời gian ông làm việc trong Dự án Manhattan.");
+        // SỬA LỖI 1: KHỞI TẠO BIẾN TOÀN CỤC THAY VÌ TẠO BIẾN CỤC BỘ MỚI
+        this.txtPlot = new JTextArea(m.description.isEmpty() ? "Đang cập nhật nội dung phim..." : m.description);
         txtPlot.setWrapStyleWord(true);
         txtPlot.setLineWrap(true);
         txtPlot.setOpaque(false);
         txtPlot.setEditable(false);
-        txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        txtPlot.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        txtPlot.setForeground(TEXT_MUTED);
+        txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(txtPlot);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Info Grid (Đạo diễn, diễn viên...)
         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
-        infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); 
         infoGrid.setOpaque(false);
-        infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
-        infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
-        infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genre)));
+        infoGrid.add(createInfoBlock("Đạo diễn", m.director.isEmpty() ? "Đang cập nhật" : m.director));
+        infoGrid.add(createInfoBlock("Diễn viên", m.actors.isEmpty() ? "Đang cập nhật" : m.actors));
+        infoGrid.add(createInfoBlock("Thể loại", m.genre));
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
-        rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
+        rightBottomInfo.add(createInfoBlock("Khởi chiếu", m.releaseDate.isEmpty() ? "Sắp chiếu" : m.releaseDate));
         rightBottomInfo.add(Box.createHorizontalStrut(50));
         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
-        // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
         btnTrailer.setPreferredSize(new Dimension(110, 35));
@@ -158,52 +158,53 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(infoGrid);
         contentPanel.add(Box.createVerticalStrut(30));
 
-        // Bài đánh giá
         JLabel lblReview = new JLabel("Bài đánh giá");
         lblReview.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblReview);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        JPanel reviewPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        // SỬA LỖI 1: KHỞI TẠO BIẾN TOÀN CỤC
+
+        this.reviewPanel = new JPanel(new GridLayout(0, 1, 0, 15));
+        reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); 
         reviewPanel.setOpaque(false);
-        reviewPanel.add(createReviewCard("IMDB", "Oppenheimer - Nolan's Best Work"));
-        reviewPanel.add(createReviewCard("Rotten Tomatoes", "Oppenheimer Review - Brilliant and Haunting"));
+        // Đặt kích thước tối đa để các nút không bị giãn dài xuống dưới màn hình
+        reviewPanel.setMaximumSize(new Dimension(900, 150));
+        
+        // Hiển thị trạng thái Loading tạm thời
+        reviewPanel.add(createReviewCard("Hệ thống", "Đang tìm kiếm các bài review...", ""));
+        contentPanel.add(reviewPanel);
+        contentPanel.add(Box.createVerticalStrut(30));
+        
+        // Hiển thị trạng thái Loading tạm thời trước khi có Link thật
+        reviewPanel.add(createReviewCard("Khen Phim", "Đang tìm kiếm review...", ""));
         contentPanel.add(reviewPanel);
         contentPanel.add(Box.createVerticalStrut(30));
 
-        // Lịch chiếu hôm nay
-        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
+        JLabel lblShowtimes = new JLabel("Lịch chiếu tham khảo");
         lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblShowtimes);
         contentPanel.add(Box.createVerticalStrut(15));
 
-        // Ép trái cho block lịch chiếu 1
-        JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
-        showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        JPanel showtime1 = createCinemaShowtimeBlock("Rạp Beta Cinemas", "Thông tin lịch chiếu đang được cập nhật", new String[]{"09:00", "11:30", "16:45", "22:00"});
+        showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(showtime1);
         contentPanel.add(Box.createVerticalStrut(15));
-        
-        // Ép trái cho block lịch chiếu 2
-        JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
-        showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-        contentPanel.add(showtime2);
 
         JScrollPane scrollPane = new JScrollPane(contentPanel);
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Bọc mainPanel trong một panel trong suốt để tạo padding giả shadow
         JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(new Color(0, 0, 0, 0)); // Trong suốt
+        wrapper.setBackground(new Color(0, 0, 0, 0)); 
         wrapper.add(mainPanel, BorderLayout.CENTER);
         
-        // Đặt nền trong suốt cho JDialog
         setBackground(new Color(0, 0, 0, 0));
         setContentPane(wrapper);
+
     }
 
     private JPanel createStatCard(ImageIcon icon,String title, String value, Color bgColor) {
@@ -236,19 +237,43 @@ class MovieDetailsDialog extends JDialog {
         return p;
     }
 
-    private JPanel createReviewCard(String source, String text) {
+    private JPanel createReviewCard(String source, String text, String url) {
         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 15, 15, 15)));
+
+        // Kiểm tra xem có URL thật hay không
+        boolean hasUrl = (url != null && !url.isEmpty());
+
         JLabel src = new JLabel(source);
         src.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         src.setForeground(TEXT_MUTED);
-        JLabel link = new JLabel(text + " ↗");
+        
+        // Nếu có URL thì hiện chữ xanh gạch chân, không có thì hiện chữ xám
+        String displayText = hasUrl ? "<html><u>" + text + "</u> ↗</html>" : "Chưa có bài review cho phim này";
+        JLabel link = new JLabel(displayText);
         link.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        link.setForeground(PRIMARY_BLUE);
+        link.setForeground(hasUrl ? PRIMARY_BLUE : TEXT_MUTED);
+        
         p.add(src);
         p.add(Box.createVerticalStrut(5));
         p.add(link);
+
+        // Chỉ gắn sự kiện click và đổi con trỏ chuột nếu có URL
+        if (hasUrl) {
+            p.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            p.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    try {
+                        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                    } catch (Exception ex) {
+                        System.err.println("Không thể mở trình duyệt: " + ex.getMessage());
+                    }
+                }
+            });
+        }
+
         return p;
     }
 
@@ -299,7 +324,59 @@ class MovieDetailsDialog extends JDialog {
             timeGrid.add(timeBtn);
         }
         p.add(timeGrid);
-        
         return p;
+    }
+
+    private void fetchExtraInfo(String movieName) {
+        SwingWorker<JSONObject, Void> worker = new SwingWorker<>() {
+            @Override
+            protected JSONObject doInBackground() throws Exception {
+                try (Socket socket = new Socket(ipserver, 4000);
+                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    
+                    out.println("GET_MOVIE_EXTRA|" + movieName);
+                    return new JSONObject(in.readLine());
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    JSONObject data = get();
+                    
+                    // Cập nhật AI Summary
+                    txtPlot.setText(data.getString("ai_summary"));
+                    txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                    txtPlot.setForeground(Color.BLACK); 
+                    
+                    reviewPanel.removeAll();
+                    
+                    // 1. Thêm Card Khen Phim
+                    String kpUrl = data.optString("kp_url", "");
+                    reviewPanel.add(createReviewCard("Khen Phim", data.optString("kp_title", "Xem review"), kpUrl));
+                    
+                    // 2. Thêm Card Moveek
+                    String moveekUrl = data.optString("moveek_url", "");
+                    reviewPanel.add(createReviewCard("Moveek", data.optString("moveek_title", "Review trên Moveek"), moveekUrl));
+                    
+                    // 3. Thêm Card Báo mạng (Chỉ hiện nếu có link)
+                    String generalUrl = data.optString("general_url", "");
+                    if (!generalUrl.isEmpty()) {
+                        String sourceName = data.optString("general_source", "Web Review");
+                        String generalTitle = data.optString("general_title", "Đọc bài viết");
+                        reviewPanel.add(createReviewCard(sourceName, generalTitle, generalUrl));
+                    }
+                    
+                    reviewPanel.revalidate();
+                    reviewPanel.repaint();
+                    
+                } catch (Exception e) {
+                    txtPlot.setText("Không thể tải thông tin từ Server. Vui lòng thử lại sau.");
+                    txtPlot.setForeground(Color.RED);
+                }
+            }
+        };
+        worker.execute();
     }
 }
