@@ -1,5 +1,6 @@
 package server;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -56,23 +57,19 @@ public class ClientHandler implements Runnable {
                                 writer.println("ERROR|Không tìm thấy phim cho rạp " + cinemaId);
                             }
                         } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_MOVIES|<cinemaId>");
-
-                    }
-                    else if (clientmessage.trim().startsWith("GET_STREAM_LINK")) {
+                    } else if(clientmessage.trim().contains("GET_TRAILER")){
                         String[] parts = clientmessage.split("\\|");
-                        if (parts.length == 2) {
-                            String rawUrl = parts[1]; // Đây là cái link youtube.com/watch?v=...
-                            String streamUrl = getDirectUrl(rawUrl);
-
-                            if (streamUrl != null) {
-                                // Trả link sạch về cho Client để nó mở MediaPlayer
-                                writer.println("STREAM_URL|" + streamUrl);
+                        if(parts.length == 2){
+                            String ytb = parts[1];
+                            String trailerLink = getlinkytb(ytb);
+                            if(trailerLink != null && !"error".equals(trailerLink)){
+                                System.out.println("[" + threadname + "] Đã tìm thấy link trailer cho " + ytb + ": " + trailerLink);
+                                writer.println(trailerLink);
                             } else {
-                                writer.println("ERROR|Không thể lấy link stream");
+                                writer.println("ERROR|Không thể lấy link trailer cho " + ytb);
                             }
-                        }
-                    }
-                    else {
+                        } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_TRAILER|<youtube_url>");
+                    } else {
                         writer.println("ERROR|Lệnh không được nhận dạng. Vui lòng gửi lệnh hợp lệ.");
                     }
                 }
@@ -172,23 +169,41 @@ public class ClientHandler implements Runnable {
 //    public JSONObject getTrailer(){
 //
 //    }
-public String getDirectUrl(String youtubeUrl) {
-    try {
-        String projectPath = System.getProperty("user.dir");
-        String toolExecutable = projectPath + java.io.File.separator + "tools" + java.io.File.separator + "yt-dlp.exe";
-
-        ProcessBuilder pb = new ProcessBuilder(
-                toolExecutable, "-g", "-f", "best[ext=mp4]", youtubeUrl
-        );
-
-        Process process = pb.start();
-        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String directUrl = br.readLine();
-        System.out.println(">>> SERVER CHECK: yt-dlp tra ve link: " + directUrl);
-        process.waitFor();
-        return directUrl;
-    } catch (Exception e) {
-        return null;
+    public String getlinkytb(String ytb){
+        StringBuilder output = new StringBuilder();
+        try{
+            File exeFile = new File("resource/yt-dlp.exe");
+            String path = exeFile.getAbsolutePath();
+            ProcessBuilder builder = new ProcessBuilder(
+                path,
+                "-f", "136", // ID 136 là mp4 720p (có cả tiếng + hình).
+                "-g",
+                ytb
+            );
+            Process process = builder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n"); // Lưu link vào output
+            }
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Đã lấy được link trailer: " + output.toString().trim());
+                return output.toString().trim(); // Trả về link Youtube trực tiếp
+            } else {
+                // Đọc lỗi nếu lấy link thất bại (VD: link sai, video private...)
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                StringBuilder errorOutput = new StringBuilder();
+                String errLine;
+                while ((errLine = errorReader.readLine()) != null) {
+                    errorOutput.append(errLine).append("\n");
+                }
+                System.err.println("Lỗi yt-dlp: " + errorOutput.toString());
+                return "error"; // Trả về mã lỗi cho Client biết
+            }
+        } catch(Exception e){
+            System.err.println("Lỗi khi lấy link trailer: " + e.getMessage());
+            return "error"; // Trả về mã lỗi cho Client biết
+        }
     }
-}
 }
