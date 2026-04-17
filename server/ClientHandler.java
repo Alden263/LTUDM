@@ -56,6 +56,21 @@ public class ClientHandler implements Runnable {
                                 writer.println("ERROR|Không tìm thấy phim cho rạp " + cinemaId);
                             }
                         } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_MOVIES|<cinemaId>");
+
+                    }
+                    else if (clientmessage.trim().startsWith("GET_STREAM_LINK")) {
+                        String[] parts = clientmessage.split("\\|");
+                        if (parts.length == 2) {
+                            String rawUrl = parts[1]; // Đây là cái link youtube.com/watch?v=...
+                            String streamUrl = getDirectUrl(rawUrl);
+
+                            if (streamUrl != null) {
+                                // Trả link sạch về cho Client để nó mở MediaPlayer
+                                writer.println("STREAM_URL|" + streamUrl);
+                            } else {
+                                writer.println("ERROR|Không thể lấy link stream");
+                            }
+                        }
                     }
                     else {
                         writer.println("ERROR|Lệnh không được nhận dạng. Vui lòng gửi lệnh hợp lệ.");
@@ -157,4 +172,23 @@ public class ClientHandler implements Runnable {
 //    public JSONObject getTrailer(){
 //
 //    }
+public String getDirectUrl(String youtubeUrl) {
+    try {
+        String projectPath = System.getProperty("user.dir");
+        String toolExecutable = projectPath + java.io.File.separator + "tools" + java.io.File.separator + "yt-dlp.exe";
+
+        ProcessBuilder pb = new ProcessBuilder(
+                toolExecutable, "-g", "-f", "best[ext=mp4]", youtubeUrl
+        );
+
+        Process process = pb.start();
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String directUrl = br.readLine();
+        System.out.println(">>> SERVER CHECK: yt-dlp tra ve link: " + directUrl);
+        process.waitFor();
+        return directUrl;
+    } catch (Exception e) {
+        return null;
+    }
+}
 }

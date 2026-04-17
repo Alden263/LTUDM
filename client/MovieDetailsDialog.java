@@ -1,14 +1,24 @@
 package client;
 
+import javafx.scene.media.MediaPlayer;
 import javafx.embed.swing.JFXPanel;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Slider;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaView;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URL;
 
@@ -22,6 +32,9 @@ import javax.swing.*;
 // import javax.swing.JPanel;
 import javax.swing.border.*;
 
+import static java.lang.System.in;
+import static java.lang.System.out;
+
 // import CinemaFinderUI.Movie;
 // import CinemaFinderUI.RoundedPanel;
 
@@ -29,6 +42,8 @@ class MovieDetailsDialog extends JDialog {
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
+//    private PrintWriter out;
+//    private BufferedReader in;
     public MovieDetailsDialog(JFrame parent, Movie m) {
         super(parent, true);
         setSize(900, 700);
@@ -152,7 +167,38 @@ class MovieDetailsDialog extends JDialog {
         
         // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");
-        btnTrailer.addActionListener(e -> openTrailerWindow(m.trailer));
+        // Nút Trailer
+
+        btnTrailer.addActionListener(e -> {
+            // 1. Hiện con trỏ chuột chờ
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            new Thread(() -> {
+                try {
+                    // GIẢ SỬ: Bạn đã truyền PrintWriter 'out' và BufferedReader 'in' vào class này
+                    // Nếu chưa có, bạn cần thêm out/in vào Constructor của MovieDetailsDialog
+                    out.println("GET_TRAILER|" + m.trailer);
+
+                    // Đợi Server phản hồi link direct
+                    BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                    String response = br.readLine();
+
+                    if (response != null && response.startsWith("SUCCESS_TRAILER")) {
+                        String directLink = response.split("\\|")[1];
+
+                        // 2. Mở Player với link "sạch" (directLink)
+                        Platform.runLater(() -> openTrailerWindow(directLink));
+                    } else {
+                        SwingUtilities.invokeLater(() ->
+                                JOptionPane.showMessageDialog(this, "Không lấy được link trailer từ Server!"));
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                } finally {
+                    SwingUtilities.invokeLater(() -> setCursor(Cursor.getDefaultCursor()));
+                }
+            }).start();
+        });
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
         btnTrailer.setPreferredSize(new Dimension(110, 35));
         btnTrailer.setFont(new Font("Arial", Font.BOLD, 15));
@@ -312,91 +358,59 @@ class MovieDetailsDialog extends JDialog {
         
         return p;
     }
-    private void openTrailerWindow(String fullUrlFromServer) {
-        if (fullUrlFromServer == null || fullUrlFromServer.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Link trailer trống!");
-            return;
-        }
-
-        // 1. Tách lấy ID từ link Server trả về (Xử lý được cả link dài và link rút gọn)
-        String videoId = "";
-        try {
-            if (fullUrlFromServer.contains("v=")) {
-                videoId = fullUrlFromServer.split("v=")[1].split("&")[0];
-            } else if (fullUrlFromServer.contains("youtu.be/")) {
-                videoId = fullUrlFromServer.split("youtu.be/")[1].split("\\?")[0];
-            } else {
-                videoId = fullUrlFromServer; // Trường hợp server trả về mỗi ID
-            }
-        } catch (Exception e) {
-            videoId = "M7lc1UVf-VE"; // ID dự phòng nếu lỗi
-        }
-
+    private void openTrailerWindow(String directUrl) {
         JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
         trailerDialog.setSize(1000, 600);
         trailerDialog.setLocationRelativeTo(this);
-        trailerDialog.setLayout(new BorderLayout());
+        trailerDialog.getContentPane().setBackground(Color.BLACK);
 
-        final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
-        trailerDialog.add(jfxPanel, BorderLayout.CENTER);
+        JFXPanel jfxPanel = new JFXPanel();
+        trailerDialog.add(jfxPanel);
 
-        final String finalId = videoId;
-        javafx.application.Platform.runLater(() -> {
-            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
-            javafx.scene.web.WebEngine engine = webView.getEngine();
+        Platform.runLater(() -> {
+            try {
+                // Khởi tạo Media từ link trực tiếp mà Server vừa gửi
+                Media media = new Media(directUrl);
+                MediaPlayer mediaPlayer = new MediaPlayer(media);
+                MediaView mediaView = new MediaView(mediaPlayer);
 
-            // 2. Nhúng mã HTML API bạn vừa gửi nhưng đã được "Full-hóa" bằng CSS
-            String htmlContent = "<!DOCTYPE html><html>" +
-                    "<head><style>" +
-                    "  /* Ép video tràn 100% không dư 1 pixel nào */ " +
-                    "  body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }" +
-                    "  #player { width: 100vw; height: 100vh; }" +
-                    "</style></head>" +
-                    "<body>" +
-                    "  <div id='player'></div>" +
-                    "  <script>" +
-                    "    var tag = document.createElement('script');" +
-                    "    tag.src = 'https://www.youtube.com/iframe_api';" +
-                    "    var firstScriptTag = document.getElementsByTagName('script')[0];" +
-                    "    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);" +
-                    "    var player;" +
-                    "    function onYouTubeIframeAPIReady() {" +
-                    "      player = new YT.Player('player', {" +
-                    "        height: '100%', width: '100%'," +
-                    "        videoId: '" + finalId + "'," +
-                    "        playerVars: { " +
-                    "          'autoplay': 1, " +
-                                "'origin': 'https://www.youtube.com'"+
-                    "          'rel': 0, " +
-                    "          'modestbranding': 1," +
-                    "          'iv_load_policy': 3" +
-                    "        }," +
-                    "        events: { 'onReady': onPlayerReady }" +
-                    "      });" +
-                    "    }" +
-                    "    function onPlayerReady(event) { event.target.playVideo(); }" +
-                    "  </script>" +
-                    "</body></html>";
+                // Chỉnh video khít khung hình
+                mediaView.setFitWidth(1000);
+                mediaView.setFitHeight(600);
+                mediaView.setPreserveRatio(true);
 
-            // Thêm dòng này ngay trước khi loadContent
-            String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
-            engine.setUserAgent(chromeAgent);
-            engine.loadContent(htmlContent);
+                // Cho video nằm giữa nền đen
+                StackPane root = new StackPane(mediaView);
+                root.setStyle("-fx-background-color: black;");
 
-            jfxPanel.setScene(new javafx.scene.Scene(webView));
-            jfxPanel.revalidate();
-            jfxPanel.repaint();
-        });
+                jfxPanel.setScene(new Scene(root));
+                mediaPlayer.play();
 
-        // Giải phóng khi đóng cửa sổ
-        trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent e) {
-                javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
+                // Đóng cửa sổ là tắt video luôn cho đỡ ồn
+                trailerDialog.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        mediaPlayer.stop();
+                    }
+                });
+            } catch (Exception ex) {
+                System.err.println("Lỗi Media: " + ex.getMessage());
             }
         });
 
         trailerDialog.setVisible(true);
+    }
+
+
+
+        // Giải phóng khi đóng cửa sổ
+//        trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+//            @Override
+//            public void windowClosing(java.awt.event.WindowEvent e) {
+//                javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
+//            }
+//        });
+//
     }
 //private void openTrailerWindow(String url) {
 //    if (url == null || url.isEmpty()) {
@@ -413,4 +427,4 @@ class MovieDetailsDialog extends JDialog {
 //    }
 //}
 
-}
+
