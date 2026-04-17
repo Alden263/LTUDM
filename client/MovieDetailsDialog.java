@@ -2,15 +2,20 @@ package client;
 
 import javafx.embed.swing.JFXPanel;
 import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
+import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -22,6 +27,11 @@ import javax.swing.*;
 // import javax.swing.JPanel;
 import javax.swing.border.*;
 
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.Connection;
+
 // import CinemaFinderUI.Movie;
 // import CinemaFinderUI.RoundedPanel;
 
@@ -29,8 +39,23 @@ class MovieDetailsDialog extends JDialog {
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
+    private String ipserver;
+
+    // #region Search IP server từ API
+    public void searchipserver() throws IOException{
+        String api = "https://retoolapi.dev/lKNfWn/data/1";
+        Document doc = Jsoup.connect(api).ignoreContentType(true).ignoreHttpErrors(true).header("Content-Type", "application/json").method(Connection.Method.GET).execute().parse();
+        JSONObject json = new JSONObject(doc.text());
+        ipserver = json.get("ip").toString();
+        System.out.println("IP Server: " + ipserver);
+    }
     public MovieDetailsDialog(JFrame parent, Movie m) {
         super(parent, true);
+        try {
+            searchipserver(); // Nó sẽ tự tìm phương thức này ở lớp cha để chạy
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         setSize(900, 700);
         setLocationRelativeTo(parent);
         setUndecorated(true); // Bỏ thanh title bar mặc định
@@ -126,7 +151,7 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(lblPlotTitle);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        JTextArea txtPlot = new JTextArea("Câu chuyện về nhà vật lý lý thuyết người Mỹ J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử. Bộ phim khám phá cuộc đời và sự nghiệp của Oppenheimer, bao gồm cả thời gian ông làm việc trong Dự án Manhattan.");
+        JTextArea txtPlot = new JTextArea(m.description);
         txtPlot.setWrapStyleWord(true);
         txtPlot.setLineWrap(true);
         txtPlot.setOpaque(false);
@@ -140,8 +165,8 @@ class MovieDetailsDialog extends JDialog {
         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
         infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         infoGrid.setOpaque(false);
-        infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
-        infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
+        infoGrid.add(createInfoBlock("Đạo diễn", m.director));
+        infoGrid.add(createInfoBlock("Diễn viên", m.actors));
         infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genre)));
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -152,7 +177,7 @@ class MovieDetailsDialog extends JDialog {
         
         // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");
-        btnTrailer.addActionListener(e -> openTrailerWindow(m.trailer));
+        btnTrailer.addActionListener(e -> getvideo(m.trailer));
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
         btnTrailer.setPreferredSize(new Dimension(110, 35));
         btnTrailer.setFont(new Font("Arial", Font.BOLD, 15));
@@ -317,23 +342,9 @@ class MovieDetailsDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "Link trailer trống!");
             return;
         }
-
-        // 1. Tách lấy ID từ link Server trả về (Xử lý được cả link dài và link rút gọn)
-        String videoId = "";
-        try {
-            if (fullUrlFromServer.contains("v=")) {
-                videoId = fullUrlFromServer.split("v=")[1].split("&")[0];
-            } else if (fullUrlFromServer.contains("youtu.be/")) {
-                videoId = fullUrlFromServer.split("youtu.be/")[1].split("\\?")[0];
-            } else {
-                videoId = fullUrlFromServer; // Trường hợp server trả về mỗi ID
-            }
-        } catch (Exception e) {
-            videoId = "M7lc1UVf-VE"; // ID dự phòng nếu lỗi
-        }
-
+        
         JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
-        trailerDialog.setSize(1000, 600);
+        trailerDialog.setSize(800, 450);
         trailerDialog.setLocationRelativeTo(this);
         trailerDialog.setLayout(new BorderLayout());
 
@@ -341,16 +352,14 @@ class MovieDetailsDialog extends JDialog {
         final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
         trailerDialog.add(jfxPanel, BorderLayout.CENTER);
 
-        final String finalId = videoId;
+        // final String finalId = videoId;
         javafx.application.Platform.runLater(() -> {
             javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
             javafx.scene.web.WebEngine engine = webView.getEngine();
 
-            String embedUrl = fullUrlFromServer.replace("watch?v=", "embed/") + "?autoplay=1";
-            // Thêm dòng này ngay trước khi loadContent
             String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
             engine.setUserAgent(chromeAgent);
-            engine.load(embedUrl);
+            engine.load(fullUrlFromServer);
 
             jfxPanel.setScene(new javafx.scene.Scene(webView));
         });
@@ -364,6 +373,40 @@ class MovieDetailsDialog extends JDialog {
         // });
 
         trailerDialog.setVisible(true);
+    }
+    private void getvideo(String url) {
+        SwingWorker<String, Void> worker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() {
+                // Giả sử server trả về một URL YouTube đầy đủ, nếu cần xử lý thêm có thể làm ở đây
+                try(Socket socket = new Socket(ipserver, 4000);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
+                    
+                    writer.println("GET_TRAILER|" + url);
+                    String response = reader.readLine();
+                    if(response.equals("error"))
+                        return "Không có dữ liệu";
+                    return response; // Trả về URL đã nhận từ server
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String ytburl = get();
+                    openTrailerWindow(ytburl);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(MovieDetailsDialog.this, "Không thể tải trailer: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 //private void openTrailerWindow(String url) {
 //    if (url == null || url.isEmpty()) {
