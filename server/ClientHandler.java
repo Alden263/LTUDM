@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 import org.json.JSONArray;
@@ -213,51 +212,114 @@ public class ClientHandler implements Runnable {
             return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
         }
     }
-
-    // Lấy khung giờ chiếu địa điểm chiếu  và ngày chiếu
     public JSONObject getSessionGroups(String cinemaId, String date) {
-    try {
-        String api = "https://zlp-movie-api.zalopay.vn/v2/movie/web/data/sessions?cinemaId="
-            + cinemaId + "&date=" + date;
-        Document doc = Jsoup.connect(api).ignoreContentType(true)
-            .method(Connection.Method.GET).execute().parse();
-        JSONObject json = new JSONObject(doc.text());
+        try {
+            String api = "https://zlp-movie-api.zalopay.vn/v2/movie/web/data/sessions?cinemaId=" 
+                + cinemaId + "&date=" + date;
+            Document doc = Jsoup.connect(api).ignoreContentType(true)
+                .method(Connection.Method.GET).execute().parse();
+            JSONObject json = new JSONObject(doc.text());
 
-        if (!json.has("data") || json.isNull("data")) {
-            return new JSONObject().put("status", "error").put("message", "Không có dữ liệu");
+            if (!json.has("data") || json.isNull("data")) {
+                return new JSONObject().put("status", "error").put("message", "Không có dữ liệu");
+            }
+
+            JSONObject data = json.getJSONObject("data");
+            JSONArray films = data.optJSONArray("films");
+            
+            if (films == null) {
+                 return new JSONObject().put("status", "success").put("data", new JSONArray());
+            }
+
+            // Lọc và giữ lại các trường cần thiết
+            JSONArray resultFilms = new JSONArray();
+            for (int i = 0; i < films.length(); i++) {
+                JSONObject film = films.getJSONObject(i);
+                JSONObject item = new JSONObject();
+                
+                item.put("nameEN", film.optString("nameEN", ""));
+                item.put("publishDate", formatDate(film.optString("publishDate", "")));
+
+                JSONArray rawSessionGroups = film.optJSONArray("sessionGroups");
+                JSONArray processedGroups = new JSONArray();
+
+                if (rawSessionGroups != null) {
+                    for (int j = 0; j < rawSessionGroups.length(); j++) {
+                        JSONObject rawGroup = rawSessionGroups.getJSONObject(j);
+                        JSONObject groupItem = new JSONObject();
+                        
+                        groupItem.put("groupName", rawGroup.optString("groupName", ""));
+                        
+                        JSONArray rawSessions = rawGroup.optJSONArray("sessions");
+                        JSONArray processedSessions = new JSONArray();
+                        
+                        if (rawSessions != null) {
+                            for (int k = 0; k < rawSessions.length(); k++) {
+                                JSONObject rawSession = rawSessions.getJSONObject(k);
+                                JSONObject sessionItem = new JSONObject();
+                                
+                                String rawStartTime = rawSession.optString("sessionTime", "");
+                                String rawEndTime = rawSession.optString("sessionEndTime", "");
+                                String rawDeadline = rawSession.optString("purchaseDeadline", "");
+                                
+                                // Lấy đầy đủ Giờ và Ngày Tháng Năm (VD: 18:00 17/04/2026)
+                                sessionItem.put("sessionTime", formatDateTime(rawStartTime));
+                                sessionItem.put("sessionEndTime", formatDateTime(rawEndTime));
+                                sessionItem.put("purchaseDeadline", formatDateTime(rawDeadline));
+                                
+                                // Chỉ lấy giờ để hiển thị UI (VD: 18:00 ~ 20:10)
+                                sessionItem.put("displayTime", formatTime(rawStartTime) + " ~ " + formatTime(rawEndTime));
+                                
+                                processedSessions.put(sessionItem);
+                            }
+                        }
+                        groupItem.put("sessions", processedSessions);
+                        processedGroups.put(groupItem);
+                    }
+                }
+                item.put("sessionGroups", processedGroups);
+                resultFilms.put(item);
+            }
+
+            return new JSONObject().put("status", "success").put("data", resultFilms);
+        } catch (IOException e) {
+            return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
         }
-
-        JSONObject data = json.getJSONObject("data");
-        JSONArray films = data.getJSONArray("films");
-
-        // loc/giu lai cac truong can thiet
-        JSONArray resultFilms = new JSONArray();
-        for (int i = 0; i < films.length(); i++) {
-            JSONObject film = films.getJSONObject(i);
-            JSONObject item = new JSONObject();
-            item.put("nameEN", film.optString("nameEN", ""));
-            item.put("publishDate", film.optString("publishDate", ""));
-            item.put("sessionGroups", film.optJSONArray("sessionGroups"));
-            resultFilms.put(item);
-        }
-
-        return new JSONObject().put("status", "success").put("data", resultFilms);
-    } catch (IOException e) {
-        return new JSONObject().put("status", "error").put("message", "Lỗi server: " + e.getMessage());
     }
-}
 
-private String formatDate(String ymd) {
-    try {
-        return java.time.LocalDate.parse(ymd)
-            .format(java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
-    } catch (Exception e) { return ymd; }
-}
+    private String formatDate(String ymd) {
+        try {
+            if (ymd != null && ymd.length() >= 10) {
+                return java.time.LocalDate.parse(ymd.substring(0, 10))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            }
+            return ymd;
+        } catch (Exception e) { 
+            return ymd; 
+        }
+    }
 
-private String formatTime(String dt) {
-    // "2026-04-17 20:10:00" -> "20:10"
-    try {
-        return java.time.LocalDateTime.parse(dt.replace(" ", "T"))
-            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
-    } catch (Exception e) { return dt; }
+    // Hàm mới: Format đầy đủ Giờ phút và Ngày/Tháng/Năm
+    private String formatDateTime(String dt) {
+        // "2026-04-17 20:10:00" -> "20:10 17/04/2026"
+        try {
+            if (dt == null || dt.isEmpty()) return dt;
+            return java.time.LocalDateTime.parse(dt.replace(" ", "T"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy"));
+        } catch (Exception e) { 
+            return dt; 
+        }
+    }
+
+    // Hàm cũ: Chỉ lấy Giờ phút (dùng để build chuỗi displayTime)
+    private String formatTime(String dt) {
+        // "2026-04-17 20:10:00" -> "20:10"
+        try {
+            if (dt == null || dt.isEmpty()) return dt;
+            return java.time.LocalDateTime.parse(dt.replace(" ", "T"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) { 
+            return dt; 
+        }
+    }
 }
