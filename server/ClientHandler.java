@@ -62,7 +62,7 @@ public class ClientHandler implements Runnable {
                         String movieName = parts[1];
                         JSONObject result = new JSONObject();
                         
-                        
+
                         // 2. Khen Phim
                         JSONObject kpData = getKhenPhimReview(movieName);
                         result.put("kp_title", kpData.optString("title", "Xem review chi tiết"));

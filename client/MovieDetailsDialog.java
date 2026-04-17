@@ -194,16 +194,19 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(Box.createVerticalStrut(15));
 
         JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+            scrollPane.setBorder(null);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(new Color(0, 0, 0, 0)); 
-        wrapper.add(mainPanel, BorderLayout.CENTER);
-        
-        setBackground(new Color(0, 0, 0, 0));
-        setContentPane(wrapper);
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setBackground(new Color(0, 0, 0, 0)); 
+            wrapper.add(mainPanel, BorderLayout.CENTER);
+            
+            setBackground(new Color(0, 0, 0, 0));
+            setContentPane(wrapper);
+
+            // DÒNG QUAN TRỌNG NHẤT: Gọi hàm để bắt đầu tải dữ liệu từ Server
+            fetchExtraInfo(m.titleVn);
 
     }
 
@@ -250,7 +253,7 @@ class MovieDetailsDialog extends JDialog {
         src.setForeground(TEXT_MUTED);
         
         // Nếu có URL thì hiện chữ xanh gạch chân, không có thì hiện chữ xám
-        String displayText = hasUrl ? "<html><u>" + text + "</u> ↗</html>" : "Chưa có bài review cho phim này";
+        String displayText = hasUrl ? "<html><u>" + text + "</u> ↗</html>" : text;
         JLabel link = new JLabel(displayText);
         link.setFont(new Font("Segoe UI", Font.BOLD, 13));
         link.setForeground(hasUrl ? PRIMARY_BLUE : TEXT_MUTED);
@@ -341,41 +344,46 @@ class MovieDetailsDialog extends JDialog {
             }
 
             @Override
-            protected void done() {
-                try {
-                    JSONObject data = get();
-                    
-                    // Cập nhật AI Summary
-                    txtPlot.setText(data.getString("ai_summary"));
-                    txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                    txtPlot.setForeground(Color.BLACK); 
-                    
-                    reviewPanel.removeAll();
-                    
-                    // 1. Thêm Card Khen Phim
-                    String kpUrl = data.optString("kp_url", "");
-                    reviewPanel.add(createReviewCard("Khen Phim", data.optString("kp_title", "Xem review"), kpUrl));
-                    
-                    // 2. Thêm Card Moveek
-                    String moveekUrl = data.optString("moveek_url", "");
-                    reviewPanel.add(createReviewCard("Moveek", data.optString("moveek_title", "Review trên Moveek"), moveekUrl));
-                    
-                    // 3. Thêm Card Báo mạng (Chỉ hiện nếu có link)
-                    String generalUrl = data.optString("general_url", "");
-                    if (!generalUrl.isEmpty()) {
-                        String sourceName = data.optString("general_source", "Web Review");
-                        String generalTitle = data.optString("general_title", "Đọc bài viết");
-                        reviewPanel.add(createReviewCard(sourceName, generalTitle, generalUrl));
-                    }
-                    
-                    reviewPanel.revalidate();
-                    reviewPanel.repaint();
-                    
-                } catch (Exception e) {
-                    txtPlot.setText("Không thể tải thông tin từ Server. Vui lòng thử lại sau.");
-                    txtPlot.setForeground(Color.RED);
+        protected void done() {
+            try {
+                JSONObject data = get();
+                
+                // AI đã bỏ nên không cần txtPlot.setText nữa
+                
+                // Xóa các card "Loading" tạm thời
+                reviewPanel.removeAll();
+                
+                // 1. Thêm Card Khen Phim
+                String kpUrl = data.optString("kp_url", "");
+                if (!kpUrl.isEmpty()) {
+                    reviewPanel.add(createReviewCard("Khen Phim", data.optString("kp_title", "Xem review chi tiết"), kpUrl));
+                } else {
+                    reviewPanel.add(createReviewCard("Khen Phim", "Không tìm thấy bài review trên Khen Phim", ""));
                 }
+                
+                // 2. Thêm Card Moveek
+                String moveekUrl = data.optString("moveek_url", "");
+                if (!moveekUrl.isEmpty()) {
+                    reviewPanel.add(createReviewCard("Moveek", data.optString("moveek_title", "Đọc review trên Moveek"), moveekUrl));
+                } else {
+                    reviewPanel.add(createReviewCard("Moveek", "Không tìm thấy bài review trên Moveek", ""));
+                }
+                
+                // 3. Thêm Card Báo mạng (Vét cạn)
+                String generalUrl = data.optString("general_url", "");
+                if (!generalUrl.isEmpty()) {
+                    String sourceName = data.optString("general_source", "Web Review");
+                    reviewPanel.add(createReviewCard(sourceName, data.optString("general_title", "Đọc bài viết"), generalUrl));
+                }
+                
+                // Vẽ lại giao diện
+                reviewPanel.revalidate();
+                reviewPanel.repaint();
+                
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
         };
         worker.execute();
     }
