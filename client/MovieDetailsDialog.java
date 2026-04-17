@@ -112,7 +112,7 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(lblPlotTitle);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        JTextArea txtPlot = new JTextArea("Câu chuyện về nhà vật lý lý thuyết người Mỹ J. Robert Oppenheimer và vai trò của ông trong việc phát triển bom nguyên tử. Bộ phim khám phá cuộc đời và sự nghiệp của Oppenheimer, bao gồm cả thời gian ông làm việc trong Dự án Manhattan.");
+        JTextArea txtPlot = new JTextArea(m.description);
         txtPlot.setWrapStyleWord(true);
         txtPlot.setLineWrap(true);
         txtPlot.setOpaque(false);
@@ -126,8 +126,8 @@ class MovieDetailsDialog extends JDialog {
         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
         infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         infoGrid.setOpaque(false);
-        infoGrid.add(createInfoBlock("Đạo diễn", "Christopher Nolan"));
-        infoGrid.add(createInfoBlock("Diễn viên", "Cillian Murphy, Emily Blunt, Matt Damon..."));
+        infoGrid.add(createInfoBlock("Đạo diễn", m.director));
+        infoGrid.add(createInfoBlock("Diễn viên", m.actors));
         infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genre)));
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));

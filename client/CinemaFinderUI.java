@@ -414,8 +414,7 @@ public class CinemaFinderUI extends JFrame {
                             movieJson.getString("category"),
                             movieJson.getString("desc"),
                             movieJson.getString("director"),
-                            // movieJson.getString("actors"),
-                            "N/A",
+                            movieJson.optString("actors", "Chưa có thông tin diễn viên"),
                             movieJson.getString("publishDate"),
                             movieJson.getJSONObject("images").getString("type1_size2"),
                             movieJson.getJSONObject("images").getString("banner")
