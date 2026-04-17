@@ -219,7 +219,6 @@ class MovieDetailsDialog extends JDialog {
         JScrollPane scrollPane = new JScrollPane(contentPanel);
             scrollPane.setBorder(null);
             scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
             mainPanel.add(scrollPane, BorderLayout.CENTER);
 
             JPanel wrapper = new JPanel(new BorderLayout());
@@ -253,14 +252,30 @@ class MovieDetailsDialog extends JDialog {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép toàn bộ khối sát lề trái
+
+        // 1. NHÃN (Label): Ngắn nên chỉ cần JLabel là đủ
         JLabel lbl = new JLabel(label);
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbl.setForeground(TEXT_MUTED);
-        JLabel val = new JLabel(value);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép lề trái
+
+        // 2. GIÁ TRỊ (Value): Dài nên BẮT BUỘC dùng JTextArea để rớt dòng
+        JTextArea val = new JTextArea(value);
         val.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        val.setWrapStyleWord(true);
+        val.setLineWrap(true);
+        // Ép chiều ngang tối đa khoảng 350px để danh sách diễn viên tự rớt dòng
+        val.setMaximumSize(new Dimension(350, Integer.MAX_VALUE)); 
+        val.setEditable(false);
+        val.setOpaque(false);
+        val.setFocusable(false);
+        val.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép lề trái
+
         p.add(lbl);
         p.add(Box.createVerticalStrut(3));
         p.add(val);
+        
         return p;
     }
 
