@@ -231,6 +231,8 @@ public class ClientHandler implements Runnable {
             for(int i=0; i < films.length(); i++){
                 JSONObject film = films.getJSONObject(i);
                 String titleEn = film.getString("nameEN");
+                String titleVn = film.getString("nameVI");
+                titleVn = titleVn.split("-")[0].trim();
 
                 // --- GỌI API LẤY ĐIỂM Ở ĐÂY ---
                 JSONObject ratings = getTMDBData(titleEn);
@@ -240,8 +242,8 @@ public class ClientHandler implements Runnable {
                 // Logic lấy actor của ông giữ nguyên
                 for(int j=0; j < listmovie.length(); j++){
                     JSONObject movie = listmovie.getJSONObject(j);
-                    if (movie.optString("name_en", "").contains(titleEn.toUpperCase())) {
-                        film.put("actors", movie.optString("actor", "N/A"));
+                    if (movie.optString("name_en", "").replaceAll(" ", "").contains(titleEn.toUpperCase().replaceAll(" ", "")) || movie.optString("name_vn", "").replaceAll(" ", "").contains(titleVn.toUpperCase().replaceAll(" ", ""))) {
+                        film.put("actors", movie.getString("actor"));
                         break;
                     }
                 }

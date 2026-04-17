@@ -127,6 +127,7 @@ class MovieDetailsDialog extends JDialog {
         txtPlot.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         txtPlot.setForeground(TEXT_MUTED);
         txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); 
+        txtPlot.setMaximumSize(new Dimension(800, Integer.MAX_VALUE));
         contentPanel.add(txtPlot);
         contentPanel.add(Box.createVerticalStrut(20));
 
@@ -218,6 +219,7 @@ class MovieDetailsDialog extends JDialog {
         JScrollPane scrollPane = new JScrollPane(contentPanel);
             scrollPane.setBorder(null);
             scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
             mainPanel.add(scrollPane, BorderLayout.CENTER);
 
             JPanel wrapper = new JPanel(new BorderLayout());
