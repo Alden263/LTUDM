@@ -602,9 +602,12 @@ public JSONObject getGeneralReview(String movieName) {
         try{
             File exeFile = new File("resource/yt-dlp.exe");
             String path = exeFile.getAbsolutePath();
+            File denoFile = new File("resource/deno.exe");
+            String denoPath = denoFile.getAbsolutePath();
             ProcessBuilder builder = new ProcessBuilder(
                 path,
-                "-f", "136", // ID 136 là mp4 720p (có cả tiếng + hình).
+                "--js-runtimes", "deno:" + denoPath,
+                "-f", "18", // ID 136 là mp4 720p (có hình).
                 "-g",
                 ytb
             );

@@ -12,7 +12,6 @@ import org.jsoup.nodes.Document;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -20,18 +19,9 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-// import javax.swing.*;
-// import javax.swing.border.EmptyBorder;
-// import java.awt.*;
-// import java.awt.event.MouseAdapter;
-// import java.awt.event.MouseEvent;
-// import java.util.ArrayList;
-// import java.util.List;
 
 public class CinemaFinderUI extends JFrame {
     private JPanel listPanel;

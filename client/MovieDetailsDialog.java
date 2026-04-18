@@ -1,37 +1,21 @@
 package client;
 
-import javafx.embed.swing.JFXPanel;
 import javafx.application.Platform;
-import javafx.scene.Scene;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
-import java.io.IOException;
+// import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.URI;
 import java.net.URL;
-import java.util.function.Consumer;
 
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
-
-import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.Connection;
-
-import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.Connection;
 
 import org.json.JSONObject;
 
@@ -139,8 +123,7 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(lblPlotTitle);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        // SỬA LỖI 1: KHỞI TẠO BIẾN TOÀN CỤC THAY VÌ TẠO BIẾN CỤC BỘ MỚI
-        this.txtPlot = new JTextArea(m.description.isEmpty() ? "Đang cập nhật nội dung phim..." : m.description);
+        JTextArea txtPlot = new JTextArea(m.description);
         txtPlot.setWrapStyleWord(true);
         txtPlot.setLineWrap(true);
         txtPlot.setOpaque(false);
@@ -155,9 +138,9 @@ class MovieDetailsDialog extends JDialog {
         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
         infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); 
         infoGrid.setOpaque(false);
-        infoGrid.add(createInfoBlock("Đạo diễn", m.director.isEmpty() ? "Đang cập nhật" : m.director));
-        infoGrid.add(createInfoBlock("Diễn viên", m.actors.isEmpty() ? "Đang cập nhật" : m.actors));
-        infoGrid.add(createInfoBlock("Thể loại", m.genre));
+        infoGrid.add(createInfoBlock("Đạo diễn", m.director));
+        infoGrid.add(createInfoBlock("Diễn viên", m.actors));
+        infoGrid.add(createInfoBlock("Thể loại", String.join(", ", m.genre)));
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
@@ -211,7 +194,7 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(reviewPanel);
         contentPanel.add(Box.createVerticalStrut(30));
 
-        JLabel lblShowtimes = new JLabel("Lịch chiếu tham khảo");
+        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay " + today);
         lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblShowtimes);
@@ -422,34 +405,45 @@ class MovieDetailsDialog extends JDialog {
             return;
         }
         
+        Platform.setImplicitExit(false);
+        
         JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
         trailerDialog.setSize(800, 450);
         trailerDialog.setLocationRelativeTo(this);
         trailerDialog.setLayout(new BorderLayout());
 
-        Platform.setImplicitExit(false);
         final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
         trailerDialog.add(jfxPanel, BorderLayout.CENTER);
 
-        // final String finalId = videoId;
+        // --- BƯỚC QUAN TRỌNG NHẤT ---
+        // Tạo một mảng 1 phần tử đóng vai trò làm "giỏ chứa" engine để dùng chung
+        final WebEngine[] engineRef = new WebEngine[1];
+
         javafx.application.Platform.runLater(() -> {
-            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
-            javafx.scene.web.WebEngine engine = webView.getEngine();
+            WebView webView = new WebView();
+            
+            // Bỏ engine vào cái giỏ số [0]
+            engineRef[0] = webView.getEngine();
 
             String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
-            engine.setUserAgent(chromeAgent);
-            engine.load(fullUrlFromServer);
+            engineRef[0].setUserAgent(chromeAgent);
+            engineRef[0].load(fullUrlFromServer);
 
             jfxPanel.setScene(new javafx.scene.Scene(webView));
         });
 
         // Giải phóng khi đóng cửa sổ
-        // trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
-        //     @Override
-        //     public void windowClosing(java.awt.event.WindowEvent e) {
-        //         javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
-        //     }
-        // });
+        trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                javafx.application.Platform.runLater(() -> {
+                    // Lấy engine từ trong giỏ ra để ép tải trang trắng
+                    if (engineRef[0] != null) {
+                        engineRef[0].load("about:blank");
+                    }
+                });
+            }
+        });
 
         trailerDialog.setVisible(true);
     }
