@@ -1,73 +1,52 @@
 package client;
 
-import javafx.embed.swing.JFXPanel;
 import javafx.application.Platform;
-import javafx.scene.Scene;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
-import java.io.IOException;
+// import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.URI;
 import java.net.URL;
-import java.util.function.Consumer;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.crypto.SecretKey;
 import javax.imageio.ImageIO;
 import javax.swing.*;
-// import javax.swing.BoxLayout;
-// import javax.swing.JButton;
-// import javax.swing.JDialog;
-// import javax.swing.JFrame;
-// import javax.swing.JLayeredPane;
-// import javax.swing.JPanel;
 import javax.swing.border.*;
 
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.Connection;
-
-// import CinemaFinderUI.Movie;
-// import CinemaFinderUI.RoundedPanel;
 
 class MovieDetailsDialog extends JDialog {
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
     private static final Color TEXT_MUTED = new Color(117, 117, 117);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
+    
+    // ĐƯA CÁC BIẾN NÀY LÊN ĐẦU ĐỂ KHÔNG BỊ LỖI SCOPE
+    private JTextArea txtPlot;
+    private JPanel reviewPanel;
     private String ipserver;
-
-    // #region Search IP server từ API
-    public void searchipserver() throws IOException{
-        String api = "https://retoolapi.dev/lKNfWn/data/1";
-        Document doc = Jsoup.connect(api).ignoreContentType(true).ignoreHttpErrors(true).header("Content-Type", "application/json").method(Connection.Method.GET).execute().parse();
-        JSONObject json = new JSONObject(doc.text());
-        ipserver = json.get("ip").toString();
-        System.out.println("IP Server: " + ipserver);
-    }
-    public MovieDetailsDialog(JFrame parent, Movie m) {
+    private String SERVER_PUBLIC_KEY_B64;
+    // THÊM THAM SỐ ipserver VÀO CONSTRUCTOR
+    public MovieDetailsDialog(JFrame parent, Movie m, String ipserver, String serverPublicKeyB64) {
         super(parent, true);
-        try {
-            searchipserver(); // Nó sẽ tự tìm phương thức này ở lớp cha để chạy
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        setSize(900, 700);
+        this.ipserver = ipserver; // Nhận IP từ màn hình chính truyền sang
+        this.SERVER_PUBLIC_KEY_B64 = serverPublicKeyB64;
+
+        setSize(950, 700);
         setLocationRelativeTo(parent);
-        setUndecorated(true); // Bỏ thanh title bar mặc định
+        setUndecorated(true); 
         
-        // Container chính bo góc
         RoundedPanel mainPanel = new RoundedPanel(20, Color.WHITE);
         mainPanel.setLayout(new BorderLayout());
         mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-        // Nút đóng (X)
         JButton btnClose = new JButton("X");
-        btnClose.setBounds(840, 0, 60, 60);
+        btnClose.setBounds(890, 0, 60, 60);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
         btnClose.setBorderPainted(false);
@@ -76,11 +55,9 @@ class MovieDetailsDialog extends JDialog {
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dispose());
 
-        // JLayeredPane để overlay nút X lên trên ảnh Cover
         JLayeredPane layeredPane = new JLayeredPane();
-        layeredPane.setPreferredSize(new Dimension(900, 250));
+        layeredPane.setPreferredSize(new Dimension(950, 250));
 
-        // Ảnh Cover (Giả định bằng màu)
         Image loadedBanner = null;
         try {
             loadedBanner = ImageIO.read(new URL(m.banner));
@@ -89,22 +66,19 @@ class MovieDetailsDialog extends JDialog {
         }
         final Image bannerImage = loadedBanner;
 
-        // 1. Dùng JPanel và Override paintComponent để vẽ nền
         JPanel coverPanel = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 if (bannerImage != null) {
-                    // Vẽ ảnh lấp đầy toàn bộ coverPanel
                     g.drawImage(bannerImage, 0, 0, getWidth(), getHeight(), this);
                 } else {
-                    // Nếu lỗi mạng, hiển thị nền xám dự phòng
                     g.setColor(new Color(60, 60, 60));
                     g.fillRect(0, 0, getWidth(), getHeight());
                 }
             }
         };
-        coverPanel.setBounds(0, 0, 900, 250);
+        coverPanel.setBounds(0, 0, 950, 250);
         
         JPanel titleOverlay = new JPanel();
         titleOverlay.setLayout(new BoxLayout(titleOverlay, BoxLayout.Y_AXIS));
@@ -127,27 +101,28 @@ class MovieDetailsDialog extends JDialog {
 
         mainPanel.add(layeredPane, BorderLayout.NORTH);
 
-        // Nội dung chi tiết (Cuộn được)
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(new EmptyBorder(20, 30, 30, 30));
 
-        // Thống kê (Stats)
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        statsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         statsPanel.setOpaque(false);
         statsPanel.setMaximumSize(new Dimension(900, 60));
-        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " IMDB", 8 + "/10", new Color(255, 248, 225)));
-        statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), " Rotten Tomatoes", "93%", new Color(255, 235, 238)));
-        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời lượng", m.duration + " phút", new Color(227, 242, 253)));
-        contentPanel.add(statsPanel);
-        contentPanel.add(Box.createVerticalStrut(25));
 
-        // Nội dung phim
+        String imdbDisplay = m.imdbRating.equals("N/A") ? "N/A" : m.imdbRating + "/10";
+        String rottenDisplay = m.rottenRating;
+
+        statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " TMDB", imdbDisplay, new Color(255, 248, 225)));
+        statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), "Số Lượng Votes", rottenDisplay, new Color(255, 235, 238)));
+        statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời Lượng", m.duration + " phút", new Color(227, 242, 253)));
+
+        contentPanel.add(statsPanel);
+
         JLabel lblPlotTitle = new JLabel("Nội dung phim");
         lblPlotTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã có sẵn
+        lblPlotTitle.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblPlotTitle);
         contentPanel.add(Box.createVerticalStrut(10));
         
@@ -156,14 +131,15 @@ class MovieDetailsDialog extends JDialog {
         txtPlot.setLineWrap(true);
         txtPlot.setOpaque(false);
         txtPlot.setEditable(false);
-        txtPlot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        txtPlot.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        txtPlot.setForeground(TEXT_MUTED);
+        txtPlot.setAlignmentX(Component.LEFT_ALIGNMENT); 
+        txtPlot.setMaximumSize(new Dimension(800, Integer.MAX_VALUE));
         contentPanel.add(txtPlot);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Info Grid (Đạo diễn, diễn viên...)
         JPanel infoGrid = new JPanel(new GridLayout(2, 2, 20, 20));
-        infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        infoGrid.setAlignmentX(Component.LEFT_ALIGNMENT); 
         infoGrid.setOpaque(false);
         infoGrid.add(createInfoBlock("Đạo diễn", m.director));
         infoGrid.add(createInfoBlock("Diễn viên", m.actors));
@@ -171,11 +147,10 @@ class MovieDetailsDialog extends JDialog {
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
-        rightBottomInfo.add(createInfoBlock("Khởi chiếu", "20/1/2024"));
+        rightBottomInfo.add(createInfoBlock("Khởi chiếu", m.releaseDate.isEmpty() ? "Sắp chiếu" : m.releaseDate));
         rightBottomInfo.add(Box.createHorizontalStrut(50));
         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
-        // Nút Trailer
         JButton btnTrailer = new JButton(" Trailer");
         btnTrailer.addActionListener(e -> getvideo(m.trailer));
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
@@ -193,52 +168,77 @@ class MovieDetailsDialog extends JDialog {
         contentPanel.add(infoGrid);
         contentPanel.add(Box.createVerticalStrut(30));
 
-        // Bài đánh giá
         JLabel lblReview = new JLabel("Bài đánh giá");
         lblReview.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        lblReview.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblReview);
         contentPanel.add(Box.createVerticalStrut(10));
         
-        JPanel reviewPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        // SỬA LỖI 1: KHỞI TẠO BIẾN TOÀN CỤC
+
+        this.reviewPanel = new JPanel(new GridLayout(0, 1, 0, 15));
+        reviewPanel.setAlignmentX(Component.LEFT_ALIGNMENT); 
         reviewPanel.setOpaque(false);
-        reviewPanel.add(createReviewCard("IMDB", "Oppenheimer - Nolan's Best Work"));
-        reviewPanel.add(createReviewCard("Rotten Tomatoes", "Oppenheimer Review - Brilliant and Haunting"));
+        // Đặt kích thước tối đa để các nút không bị giãn dài xuống dưới màn hình
+        reviewPanel.setMaximumSize(new Dimension(900, 150));
+        
+        // Hiển thị trạng thái Loading tạm thời
+        reviewPanel.add(createReviewCard("Hệ thống", "Đang tìm kiếm các bài review...", ""));
         contentPanel.add(reviewPanel);
         contentPanel.add(Box.createVerticalStrut(30));
 
         // Lịch chiếu hôm nay
-        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay - 25/3/2026");
+        String today = java.time.LocalDate.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
+        // JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay " + today);
+        
+        // Hiển thị trạng thái Loading tạm thời trước khi có Link thật
+        reviewPanel.add(createReviewCard("Khen Phim", "Đang tìm kiếm review...", ""));
+        contentPanel.add(reviewPanel);
+        contentPanel.add(Box.createVerticalStrut(30));
+
+        JLabel lblShowtimes = new JLabel("Lịch chiếu hôm nay " + today);
         lblShowtimes.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
+        lblShowtimes.setAlignmentX(Component.LEFT_ALIGNMENT); 
         contentPanel.add(lblShowtimes);
         contentPanel.add(Box.createVerticalStrut(15));
 
-        // Ép trái cho block lịch chiếu 1
-        JPanel showtime1 = createCinemaShowtimeBlock("Galaxy Nguyễn Du", "116 Nguyễn Du, Q.1, TP.HCM", new String[]{"09:00", "11:30", "16:45", "22:00"});
+        // Ép trái cho block lịch chiếu
+        List<String> times = new ArrayList<>();
+        for (Movie.SessionGroup group : m.sessionGroups) {
+            for (Movie.SessionTime session : group.sessions) {
+                String start = formatTime(session.startTime);
+                String end = formatTime(session.endTime);
+                if (!start.isEmpty() && !end.isEmpty()) {
+                    times.add(start + "~" + end);
+                }
+            }
+        }
+
+        JPanel showtime1 = createCinemaShowtimeBlock(
+            m.cinemaName,
+            m.cinemaAddress,
+            m.provider,
+            times.toArray(new String[0])
+        );
         showtime1.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
         contentPanel.add(showtime1);
-        contentPanel.add(Box.createVerticalStrut(15));
-        
-        // Ép trái cho block lịch chiếu 2
-        JPanel showtime2 = createCinemaShowtimeBlock("Galaxy Tân Bình", "246 Nguyễn Hồng Đào, Q. Tân Bình, TP.HCM", new String[]{"14:00", "19:30"});
-        showtime2.setAlignmentX(Component.LEFT_ALIGNMENT); // Đã thêm ép trái
-        contentPanel.add(showtime2);
 
         JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+            scrollPane.setBorder(null);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Bọc mainPanel trong một panel trong suốt để tạo padding giả shadow
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(new Color(0, 0, 0, 0)); // Trong suốt
-        wrapper.add(mainPanel, BorderLayout.CENTER);
-        
-        // Đặt nền trong suốt cho JDialog
-        setBackground(new Color(0, 0, 0, 0));
-        setContentPane(wrapper);
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setBackground(new Color(0, 0, 0, 0)); 
+            wrapper.add(mainPanel, BorderLayout.CENTER);
+            
+            setBackground(new Color(0, 0, 0, 0));
+            setContentPane(wrapper);
+
+            // DÒNG QUAN TRỌNG NHẤT: Gọi hàm để bắt đầu tải dữ liệu từ Server
+            fetchExtraInfo(m.titleVn);
+
     }
 
     private JPanel createStatCard(ImageIcon icon,String title, String value, Color bgColor) {
@@ -260,81 +260,146 @@ class MovieDetailsDialog extends JDialog {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setOpaque(false);
+        p.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép toàn bộ khối sát lề trái
+
+        // 1. NHÃN (Label): Ngắn nên chỉ cần JLabel là đủ
         JLabel lbl = new JLabel(label);
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbl.setForeground(TEXT_MUTED);
-        JLabel val = new JLabel(value);
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép lề trái
+
+        // 2. GIÁ TRỊ (Value): Dài nên BẮT BUỘC dùng JTextArea để rớt dòng
+        JTextArea val = new JTextArea(value);
         val.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        val.setWrapStyleWord(true);
+        val.setLineWrap(true);
+        // Ép chiều ngang tối đa khoảng 350px để danh sách diễn viên tự rớt dòng
+        val.setMaximumSize(new Dimension(350, Integer.MAX_VALUE)); 
+        val.setEditable(false);
+        val.setOpaque(false);
+        val.setFocusable(false);
+        val.setAlignmentX(Component.LEFT_ALIGNMENT); // Ép lề trái
+
         p.add(lbl);
         p.add(Box.createVerticalStrut(3));
         p.add(val);
+        
         return p;
     }
 
-    private JPanel createReviewCard(String source, String text) {
+    private JPanel createReviewCard(String source, String text, String url) {
         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
         p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 15, 15, 15)));
+
+        // Kiểm tra xem có URL thật hay không
+        boolean hasUrl = (url != null && !url.isEmpty());
+
         JLabel src = new JLabel(source);
         src.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         src.setForeground(TEXT_MUTED);
-        JLabel link = new JLabel(text + " ↗");
+        
+        // Nếu có URL thì hiện chữ xanh gạch chân, không có thì hiện chữ xám
+        String displayText = hasUrl ? "<html><u>" + text + "</u> ↗</html>" : text;
+        JLabel link = new JLabel(displayText);
         link.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        link.setForeground(PRIMARY_BLUE);
+        link.setForeground(hasUrl ? PRIMARY_BLUE : TEXT_MUTED);
+        
         p.add(src);
         p.add(Box.createVerticalStrut(5));
         p.add(link);
+
+        // Chỉ gắn sự kiện click và đổi con trỏ chuột nếu có URL
+        if (hasUrl) {
+            p.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            p.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    try {
+                        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                    } catch (Exception ex) {
+                        System.err.println("Không thể mở trình duyệt: " + ex.getMessage());
+                    }
+                }
+            });
+        }
+
         return p;
     }
 
-    private JPanel createCinemaShowtimeBlock(String name, String address, String[] times) {
+    private JPanel createCinemaShowtimeBlock(String name, String address, String providerName, String[] times) {
         RoundedPanel p = new RoundedPanel(10, Color.WHITE);
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(BORDER_COLOR), new EmptyBorder(15, 20, 15, 20)));
-        
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COLOR),
+            new EmptyBorder(18, 20, 18, 20)
+        ));
+
+        JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        headerRow.setOpaque(false);
+        headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel lblLogo = new JLabel();
+        try {
+            String logoPath = resolveCinemaLogo(providerName, name);
+            ImageIcon icon = new ImageIcon(new ImageIcon(logoPath)
+                .getImage().getScaledInstance(44, 28, Image.SCALE_SMOOTH));
+            lblLogo.setIcon(icon);
+        } catch (Exception e) {
+            lblLogo.setPreferredSize(new Dimension(44, 28));
+        }
+
+        JPanel headerText = new JPanel();
+        headerText.setLayout(new BoxLayout(headerText, BoxLayout.Y_AXIS));
+        headerText.setOpaque(false);
+
         JLabel lblName = new JLabel(name);
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblName.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
 
-        JLabel lblAddr = new JLabel(address);
+        JLabel lblAddr = new JLabel("<html><p style='width: 500px;'>" + address + "</p></html>");
         lblAddr.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblAddr.setForeground(TEXT_MUTED);
         lblAddr.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblAddr.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
-        
-        p.add(lblName);
-        p.add(lblAddr);
-        p.add(Box.createVerticalStrut(15));
-        
-        JPanel timeGrid = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        timeGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        timeGrid.setOpaque(false);
-        for (String t : times) {
-            RoundedPanel timeBtn = new RoundedPanel(8, Color.WHITE);
-            timeBtn.setBorder(BorderFactory.createLineBorder(PRIMARY_BLUE, 1));
-            timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.Y_AXIS));
-            timeBtn.setBorder(BorderFactory.createCompoundBorder(timeBtn.getBorder(), new EmptyBorder(5, 10, 5, 10)));
-            
-            JLabel lblT = new JLabel(t);
-            lblT.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            lblT.setForeground(PRIMARY_BLUE);
-            lblT.setAlignmentX(Component.CENTER_ALIGNMENT);
-            JLabel lblFormat = new JLabel("2D Phụ đề");
-            lblFormat.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            lblFormat.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel lblPrice = new JLabel("80.000đ");
-            lblPrice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-            lblPrice.setAlignmentX(Component.CENTER_ALIGNMENT);
-            
+        headerText.add(lblName);
+        headerText.add(Box.createVerticalStrut(4));
+        headerText.add(lblAddr);
+
+        headerRow.add(lblLogo);
+        headerRow.add(headerText);
+
+        p.add(headerRow);
+        p.add(Box.createVerticalStrut(12));
+
+        JLabel lblGroup = new JLabel("2D Phụ đề Eng&Viet");
+        lblGroup.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblGroup.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(lblGroup);
+        p.add(Box.createVerticalStrut(10));
+
+        JPanel timeRow = new JPanel(new GridLayout(0, 5, 10, 10));
+        timeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        timeRow.setOpaque(false);
+        for (String t : times) {
+            RoundedPanel timeBtn = new RoundedPanel(16, Color.WHITE);
+            timeBtn.setLayout(new BoxLayout(timeBtn, BoxLayout.X_AXIS));
+            timeBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 210, 225), 1),
+                new EmptyBorder(8, 14, 8, 14)
+            ));
+
+            String displayTime = t.replace("~", " ~ ");
+
+            JLabel lblT = new JLabel(displayTime);
+            lblT.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblT.setForeground(PRIMARY_BLUE);
+
             timeBtn.add(lblT);
-            timeBtn.add(lblFormat);
-            timeBtn.add(lblPrice);
-            timeGrid.add(timeBtn);
+            timeRow.add(timeBtn);
         }
-        p.add(timeGrid);
-        
+        p.add(timeRow);
+
         return p;
     }
     private void openTrailerWindow(String fullUrlFromServer) {
@@ -342,35 +407,46 @@ class MovieDetailsDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "Link trailer trống!");
             return;
         }
+        
         Platform.setImplicitExit(false);
+        
         JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
         trailerDialog.setSize(800, 450);
         trailerDialog.setLocationRelativeTo(this);
         trailerDialog.setLayout(new BorderLayout());
 
-        Platform.setImplicitExit(false);
         final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
         trailerDialog.add(jfxPanel, BorderLayout.CENTER);
 
-        // final String finalId = videoId;
+        // --- BƯỚC QUAN TRỌNG NHẤT ---
+        // Tạo một mảng 1 phần tử đóng vai trò làm "giỏ chứa" engine để dùng chung
+        final WebEngine[] engineRef = new WebEngine[1];
+
         javafx.application.Platform.runLater(() -> {
-            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
-            javafx.scene.web.WebEngine engine = webView.getEngine();
+            WebView webView = new WebView();
+            
+            // Bỏ engine vào cái giỏ số [0]
+            engineRef[0] = webView.getEngine();
 
             String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
-            engine.setUserAgent(chromeAgent);
-            engine.load(fullUrlFromServer);
+            engineRef[0].setUserAgent(chromeAgent);
+            engineRef[0].load(fullUrlFromServer);
 
             jfxPanel.setScene(new javafx.scene.Scene(webView));
         });
 
         // Giải phóng khi đóng cửa sổ
-        // trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
-        //     @Override
-        //     public void windowClosing(java.awt.event.WindowEvent e) {
-        //         javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
-        //     }
-        // });
+        trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                javafx.application.Platform.runLater(() -> {
+                    // Lấy engine từ trong giỏ ra để ép tải trang trắng
+                    if (engineRef[0] != null) {
+                        engineRef[0].load("about:blank");
+                    }
+                });
+            }
+        });
 
         trailerDialog.setVisible(true);
     }
@@ -383,8 +459,12 @@ class MovieDetailsDialog extends JDialog {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                     
-                    writer.println("GET_TRAILER|" + url);
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String command = "GET_TRAILER|" + url;
+                    String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    writer.println(packet);
                     String response = reader.readLine();
+                    response = CryptoManager.decryptServerResponse(response, sessionKey);
                     if(response.equals("error"))
                         return "Không có dữ liệu";
                     return response; // Trả về URL đã nhận từ server
@@ -422,5 +502,103 @@ class MovieDetailsDialog extends JDialog {
 //        JOptionPane.showMessageDialog(this, "Không thể mở trình duyệt: " + e.getMessage());
 //    }
 //}
+    private String formatDate(String ymd) {
+        try {
+            if (ymd != null && ymd.length() >= 10) {
+                return java.time.LocalDate.parse(ymd.substring(0, 10))
+                    .format(java.time.format.DateTimeFormatter.ofPattern("d/M/yyyy"));
+            }
+            return ymd == null ? "" : ymd;
+        } catch (Exception e) {
+            return ymd == null ? "" : ymd;
+        }
+    }
 
+    private String formatTime(String dt) {
+        try {
+            if (dt == null || dt.isEmpty()) {
+                return "";
+            }
+            return java.time.LocalDateTime.parse(dt.replace(" ", "T"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+            return dt == null ? "" : dt;
+        }
+    }
+
+    private String resolveCinemaLogo(String providerName, String cinemaName) {
+        String provider = providerName == null ? "" : providerName.toLowerCase();
+        String cinema = cinemaName == null ? "" : cinemaName.toLowerCase();
+        if (provider.contains("galaxy") || cinema.contains("galaxy")) {
+            return "image/galaxy_logo.png";
+        }
+        if (provider.contains("lotte") || cinema.contains("lotte")) {
+            return "image/lotte_logo.png";
+        }
+        return "image/cgv_logo.png";
+    }
+
+
+    private void fetchExtraInfo(String movieName) {
+        SwingWorker<JSONObject, Void> worker = new SwingWorker<>() {
+            @Override
+            protected JSONObject doInBackground() throws Exception {
+                try (Socket socket = new Socket(ipserver, 4000);
+                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String packet = CryptoManager.encryptClientRequest("GET_MOVIE_EXTRA|" + movieName, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    out.println(packet);
+                    
+                    String response = in.readLine();
+                    response = CryptoManager.decryptServerResponse(response, sessionKey);
+                    return new JSONObject(response);
+                }
+            }
+
+            @Override
+        protected void done() {
+            try {
+                JSONObject data = get();
+                
+                // AI đã bỏ nên không cần txtPlot.setText nữa
+                
+                // Xóa các card "Loading" tạm thời
+                reviewPanel.removeAll();
+                
+                // 1. Thêm Card Khen Phim
+                String kpUrl = data.optString("kp_url", "");
+                if (!kpUrl.isEmpty()) {
+                    reviewPanel.add(createReviewCard("Khen Phim", data.optString("kp_title", "Xem review chi tiết"), kpUrl));
+                } else {
+                    reviewPanel.add(createReviewCard("Khen Phim", "Không tìm thấy bài review trên Khen Phim", ""));
+                }
+                
+                // 2. Thêm Card Moveek
+                String moveekUrl = data.optString("moveek_url", "");
+                if (!moveekUrl.isEmpty()) {
+                    reviewPanel.add(createReviewCard("Moveek", data.optString("moveek_title", "Đọc review trên Moveek"), moveekUrl));
+                } else {
+                    reviewPanel.add(createReviewCard("Moveek", "Không tìm thấy bài review trên Moveek", ""));
+                }
+                
+                // 3. Thêm Card Báo mạng (Vét cạn)
+                String generalUrl = data.optString("general_url", "");
+                if (!generalUrl.isEmpty()) {
+                    String sourceName = data.optString("general_source", "Web Review");
+                    reviewPanel.add(createReviewCard(sourceName, data.optString("general_title", "Đọc bài viết"), generalUrl));
+                }
+                
+                // Vẽ lại giao diện
+                reviewPanel.revalidate();
+                reviewPanel.repaint();
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        };
+        worker.execute();
+    }
 }

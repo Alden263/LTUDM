@@ -1,9 +1,14 @@
 package client;
 class Movie {
         String titleVn, titleEn,  genre, description, director, actors, releaseDate, posterurl, banner, trailer;
+        String cinemaName, cinemaAddress, provider;
         int duration, ageRating, idmovie;
+        java.util.List<SessionGroup> sessionGroups;
+        public String imdbRating, rottenRating;
+        // THÊM 3 BIẾN NÀY DÀNH CHO AI VÀ KHEN PHIM
+        public String aiSummary, khenPhimTitle, khenPhimUrl;
 
-        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String posterurl, String banner, String trailer) {
+        public Movie(int idmovie, String titleVn, String titleEn, int duration, int ageRating, String genre, String description, String director, String actors, String releaseDate, String imdbRating, String rottenRating, String posterurl, String banner, String trailer) {
             this.idmovie = idmovie;
             this.titleVn = titleVn;
             this.titleEn = titleEn;
@@ -14,10 +19,34 @@ class Movie {
             this.director = director;
             this.actors = actors;
             this.releaseDate = releaseDate;
+             this.imdbRating = imdbRating;      
+            this.rottenRating = rottenRating;
             this.posterurl = posterurl;
             this.banner = banner;
             this.trailer=trailer;
+            this.sessionGroups = new java.util.ArrayList<>();
         }
         public Movie() {
+            this.sessionGroups = new java.util.ArrayList<>();
+        }
+
+        static class SessionGroup {
+            String groupName;
+            java.util.List<SessionTime> sessions;
+
+            SessionGroup(String groupName) {
+                this.groupName = groupName;
+                this.sessions = new java.util.ArrayList<>();
+            }
+        }
+
+        static class SessionTime {
+            String startTime;
+            String endTime;
+
+            SessionTime(String startTime, String endTime) {
+                this.startTime = startTime;
+                this.endTime = endTime;
+            }
         }
     }

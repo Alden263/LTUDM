@@ -1,0 +1,2 @@
+resource/deno.exe filter=lfs diff=lfs merge=lfs -text
+lib/javafx-sdk-21.0.10/bin/jfxwebkit.dll filter=lfs diff=lfs merge=lfs -text

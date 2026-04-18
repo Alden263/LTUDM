@@ -1,4 +1,5 @@
 package client;
+import javax.crypto.SecretKey;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,7 +13,6 @@ import org.jsoup.nodes.Document;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -20,23 +20,15 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-// import javax.swing.*;
-// import javax.swing.border.EmptyBorder;
-// import java.awt.*;
-// import java.awt.event.MouseAdapter;
-// import java.awt.event.MouseEvent;
-// import java.util.ArrayList;
-// import java.util.List;
 
 public class CinemaFinderUI extends JFrame {
     private JPanel listPanel;
     private JPanel grid = new JPanel(new GridLayout(0, 4, 25, 25)); // Lưới 4 cột
     private LinkedHashMap<Integer, String> branches;
+    private static final String SERVER_PUBLIC_KEY_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyIHQv416vWEdZeDzpiN0RavmUAA/YFjvTcL24rtJzqCjP+vqa9IQGFQElfBEvOjxatzr/R+EUytJva9rRtTFu5KY2KM7Q9gCqe/FKu48tiFE6JX7FBiEUiM/tG2bN9sEQzX9f6tHRSL5wdkGbJXsyuwdltfFzLfMZLWTG+0j8rNfJYU89D5eN76ezSWpvmsxPYmUZWsqxOnZ+4LvNgAiFlzjueSBaiwoSg+ibZnGpF4Z3FF2Pq2QMuUs5KAFSArZ5d+aQGUGYgGRKo7/wKVXy7TOaW6aLtXD+wguLI43hnUbCEWpTzhpws1q9Hf55yAli5DRZsrBhOP7P3MY0/aILwIDAQAB";
 
     // --- CÁC MÀU SẮC CHỦ ĐẠO TỪ THIẾT KẾ ---
     private static final Color PRIMARY_BLUE = new Color(41, 121, 255);
@@ -172,11 +164,16 @@ public class CinemaFinderUI extends JFrame {
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                 
+                SecretKey sessionKey = CryptoManager.generateSessionKey();
                 // Gửi yêu cầu lấy danh sách rạp theo loại
-                out.println("GET_CINEMAS|" + cinemaId);
+                String command = "GET_CINEMAS|" + cinemaId;
+                String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                out.println(packet);
+
                 
                 String response = in.readLine();
-                JSONObject json = new JSONObject(response);
+                String jsonresponse = CryptoManager.decryptServerResponse(response, sessionKey);
+                JSONObject json = new JSONObject(jsonresponse);
                 String status = json.getString("status"); 
                 if(status.equals("error")){
                     return new LinkedHashMap<>(); 
@@ -185,7 +182,7 @@ public class CinemaFinderUI extends JFrame {
                 for(String key : data.keySet()){
                     rawData.put(Integer.parseInt(key), data.getString(key));
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.err.println("Lỗi kết nối tới Server: " + e.getMessage());
             }
             
@@ -395,9 +392,13 @@ public class CinemaFinderUI extends JFrame {
                 try (Socket socket = new Socket(ipserver, 4000);
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                    out.println("GET_MOVIES|" + cinemaId);
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String command = "GET_MOVIES|" + cinemaId;
+                    String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    out.println(packet);
                     String response = in.readLine();
-                    JSONObject json = new JSONObject(response);
+                    String jsonresponse = CryptoManager.decryptServerResponse(response, sessionKey);
+                    JSONObject json = new JSONObject(jsonresponse);
                     String status = json.getString("status"); 
                     if(status.equals("error")){
                         return new ArrayList<>(); 
@@ -415,17 +416,39 @@ public class CinemaFinderUI extends JFrame {
                             movieJson.getString("category"),
                             movieJson.getString("desc"),
                             movieJson.getString("director"),
-                            // movieJson.getString("actors"),
-                            "N/A",
+                            movieJson.optString("actors", "N/A"),
                             movieJson.getString("publishDate"),
+                            movieJson.optString("imdbRating", "N/A"),    // Đọc điểm IMDb
+                            movieJson.optString("rottenRating", "N/A"),  // Đọc điểm Rotten
                             movieJson.getJSONObject("images").getString("type1_size2"),
                             movieJson.getJSONObject("images").getString("banner"),
                             movieJson.optString("trailer","")
                         );
+                        movie.cinemaName = movieJson.optString("cinemaName", "");
+                        movie.cinemaAddress = movieJson.optString("cinemaAddress", "");
+                        movie.provider = movieJson.optString("providerName", movieJson.optString("publisher", ""));
+                        JSONArray sessionGroups = movieJson.optJSONArray("sessionGroups");
+                        if (sessionGroups != null) {
+                            for (int groupIndex = 0; groupIndex < sessionGroups.length(); groupIndex++) {
+                                JSONObject groupJson = sessionGroups.getJSONObject(groupIndex);
+                                Movie.SessionGroup group = new Movie.SessionGroup(groupJson.optString("groupName", "Không rõ định dạng"));
+                                JSONArray sessions = groupJson.optJSONArray("sessions");
+                                if (sessions != null) {
+                                    for (int sessionIndex = 0; sessionIndex < sessions.length(); sessionIndex++) {
+                                        JSONObject sessionJson = sessions.getJSONObject(sessionIndex);
+                                        group.sessions.add(new Movie.SessionTime(
+                                            sessionJson.optString("purchaseDeadline", ""),
+                                            sessionJson.optString("sessionEndTime", "")
+                                        ));
+                                    }
+                                }
+                                movie.sessionGroups.add(group);
+                            }
+                        }
                         movies.add(movie);
                     }
 
-                } catch (IOException e) {
+                } catch (Exception e) {
                     System.err.println("Lỗi kết nối tới Server: " + e.getMessage());
                 }
                 return movies;
@@ -475,7 +498,7 @@ public class CinemaFinderUI extends JFrame {
         card.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                new MovieDetailsDialog(CinemaFinderUI.this, m).setVisible(true);
+                new MovieDetailsDialog(CinemaFinderUI.this, m, ipserver, SERVER_PUBLIC_KEY_B64).setVisible(true);
             }
         });
 
@@ -516,7 +539,7 @@ public class CinemaFinderUI extends JFrame {
         try {
             // Chỉnh lại kích thước icon ngôi sao cho gọn gàng hơn
             ImageIcon staricon = new ImageIcon(new ImageIcon("image/star.png").getImage().getScaledInstance(12, 12, Image.SCALE_SMOOTH));
-            JLabel lblRating = new JLabel(); 
+            JLabel lblRating = new JLabel(m.imdbRating.equals("N/A") ? "N/A" : m.imdbRating);
             lblRating.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lblRating.setIcon(staricon);
             ratingBadge.add(lblRating);
