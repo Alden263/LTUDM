@@ -498,7 +498,7 @@ public class CinemaFinderUI extends JFrame {
         card.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                new MovieDetailsDialog(CinemaFinderUI.this, m, ipserver).setVisible(true);
+                new MovieDetailsDialog(CinemaFinderUI.this, m, ipserver, SERVER_PUBLIC_KEY_B64).setVisible(true);
             }
         });
 

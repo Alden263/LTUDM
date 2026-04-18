@@ -48,10 +48,10 @@ public class ClientHandler implements Runnable {
                     Object[] decrypted = CryptoManager.decryptClientRequest(clientmessage, SERVER_PRIVATE_KEY_B64);
                     String command = (String) decrypted[0];
                     SecretKey sessionKey = (SecretKey) decrypted[1];
+                    String responsePacket = "";
                     // System.out.println(clientmessage);
                     if(command.trim().contains("GET_CINEMAS")){
                         String[] parts = command.split("\\|");
-                        String responsePacket = "";
                         if(parts.length == 2){
                             String type_cinemaId = parts[1];
                             JSONObject cinemas = getcinemas(type_cinemaId);
@@ -69,7 +69,6 @@ public class ClientHandler implements Runnable {
                         }
                     } else if(command.trim().contains("GET_MOVIES")){
                         String[] parts = command.split("\\|");
-                        String responsePacket = "";
                         if(parts.length == 2){
                             String cinemaId = parts[1];
                             JSONObject movies = getmovies(cinemaId);
@@ -85,20 +84,25 @@ public class ClientHandler implements Runnable {
                             responsePacket = CryptoManager.encryptServerResponse("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_MOVIES|<cinemaId>", sessionKey);
                             writer.println(responsePacket);
                         }
-                    } else if(clientmessage.trim().contains("GET_TRAILER")){
-                        String[] parts = clientmessage.split("\\|");
+                    } else if(command.trim().contains("GET_TRAILER")){
+                        String[] parts = command.split("\\|");
                         if(parts.length == 2){
                             String ytb = parts[1];
                             String trailerLink = getlinkytb(ytb);
                             if(trailerLink != null && !"error".equals(trailerLink)){
                                 System.out.println("[" + threadname + "] Đã tìm thấy link trailer cho " + ytb + ": " + trailerLink);
-                                writer.println(trailerLink);
+                                responsePacket = CryptoManager.encryptServerResponse(trailerLink, sessionKey);
+                                writer.println(responsePacket);
                             } else {
-                                writer.println("ERROR|Không thể lấy link trailer cho " + ytb);
+                                responsePacket = CryptoManager.encryptServerResponse("ERROR|Không thể lấy link trailer cho " + ytb, sessionKey);
+                                writer.println(responsePacket);
                             }
-                        } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_TRAILER|<youtube_url>");
-                    } else if (clientmessage.trim().startsWith("GET_MOVIE_EXTRA")) {
-                    String[] parts = clientmessage.split("\\|");
+                        } else {
+                            responsePacket = CryptoManager.encryptServerResponse("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_TRAILER|<youtube_url>", sessionKey);
+                            writer.println(responsePacket);
+                        }
+                    } else if (command.trim().contains("GET_MOVIE_EXTRA")) {
+                    String[] parts = command.split("\\|");
                     if (parts.length == 2) {
                         String movieName = parts[1];
                         JSONObject result = new JSONObject();
@@ -119,11 +123,12 @@ public class ClientHandler implements Runnable {
                         result.put("general_source", generalData.optString("source", "Tìm kiếm trên Web"));
                         result.put("general_title", generalData.optString("title", "Xem bài đánh giá liên quan"));
                         result.put("general_url", generalData.optString("url", ""));
+                        responsePacket = CryptoManager.encryptServerResponse(result.toString(), sessionKey);
                         
-                        writer.println(result.toString());
+                        writer.println(responsePacket);
                     }
                 }else {
-                    String responsePacket = CryptoManager.encryptServerResponse("ERROR|Lệnh không được nhận dạng. Vui lòng gửi lệnh hợp lệ.", sessionKey);
+                    responsePacket = CryptoManager.encryptServerResponse("ERROR|Lệnh không được nhận dạng. Vui lòng gửi lệnh hợp lệ.", sessionKey);
                         writer.println(responsePacket);
                 }
                 

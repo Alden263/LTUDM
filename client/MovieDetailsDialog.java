@@ -13,6 +13,8 @@ import java.net.URL;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.crypto.SecretKey;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
@@ -28,12 +30,13 @@ class MovieDetailsDialog extends JDialog {
     private JTextArea txtPlot;
     private JPanel reviewPanel;
     private String ipserver;
-
+    private String SERVER_PUBLIC_KEY_B64;
     // THÊM THAM SỐ ipserver VÀO CONSTRUCTOR
-    public MovieDetailsDialog(JFrame parent, Movie m, String ipserver) {
+    public MovieDetailsDialog(JFrame parent, Movie m, String ipserver, String serverPublicKeyB64) {
         super(parent, true);
         this.ipserver = ipserver; // Nhận IP từ màn hình chính truyền sang
-        
+        this.SERVER_PUBLIC_KEY_B64 = serverPublicKeyB64;
+
         setSize(950, 700);
         setLocationRelativeTo(parent);
         setUndecorated(true); 
@@ -456,8 +459,12 @@ class MovieDetailsDialog extends JDialog {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                     
-                    writer.println("GET_TRAILER|" + url);
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String command = "GET_TRAILER|" + url;
+                    String packet = CryptoManager.encryptClientRequest(command, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    writer.println(packet);
                     String response = reader.readLine();
+                    response = CryptoManager.decryptServerResponse(response, sessionKey);
                     if(response.equals("error"))
                         return "Không có dữ liệu";
                     return response; // Trả về URL đã nhận từ server
@@ -540,8 +547,13 @@ class MovieDetailsDialog extends JDialog {
                      PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                     
-                    out.println("GET_MOVIE_EXTRA|" + movieName);
-                    return new JSONObject(in.readLine());
+                    SecretKey sessionKey = CryptoManager.generateSessionKey();
+                    String packet = CryptoManager.encryptClientRequest("GET_MOVIE_EXTRA|" + movieName, SERVER_PUBLIC_KEY_B64, sessionKey);
+                    out.println(packet);
+                    
+                    String response = in.readLine();
+                    response = CryptoManager.decryptServerResponse(response, sessionKey);
+                    return new JSONObject(response);
                 }
             }
 
