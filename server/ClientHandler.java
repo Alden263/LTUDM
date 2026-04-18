@@ -1,6 +1,7 @@
 package server;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -61,6 +62,18 @@ public class ClientHandler implements Runnable {
                                 writer.println("ERROR|Không tìm thấy phim cho rạp " + cinemaId);
                             }
                         } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_MOVIES|<cinemaId>");
+                    } else if(clientmessage.trim().contains("GET_TRAILER")){
+                        String[] parts = clientmessage.split("\\|");
+                        if(parts.length == 2){
+                            String ytb = parts[1];
+                            String trailerLink = getlinkytb(ytb);
+                            if(trailerLink != null && !"error".equals(trailerLink)){
+                                System.out.println("[" + threadname + "] Đã tìm thấy link trailer cho " + ytb + ": " + trailerLink);
+                                writer.println(trailerLink);
+                            } else {
+                                writer.println("ERROR|Không thể lấy link trailer cho " + ytb);
+                            }
+                        } else writer.println("ERROR|Yêu cầu không hợp lệ. Cú pháp: GET_TRAILER|<youtube_url>");
                     } else if (clientmessage.trim().startsWith("GET_MOVIE_EXTRA")) {
                     String[] parts = clientmessage.split("\\|");
                     if (parts.length == 2) {
@@ -231,6 +244,11 @@ public class ClientHandler implements Runnable {
             for(int i=0; i < films.length(); i++){
                 JSONObject film = films.getJSONObject(i);
                 String titleEn = film.getString("nameEN");
+
+                String mediaID = film.optString("mediaId", "");
+//                System.out.println(mediaID);
+                String trailerURL="https://www.youtube.com/watch?v="+mediaID;
+                film.put("trailer",trailerURL);
                 String titleVn = film.getString("nameVI");
                 titleVn = titleVn.split("-")[0].trim();
 
@@ -579,4 +597,41 @@ public JSONObject getGeneralReview(String movieName) {
     }
     return new JSONObject();
 }
+    public String getlinkytb(String ytb){
+        StringBuilder output = new StringBuilder();
+        try{
+            File exeFile = new File("resource/yt-dlp.exe");
+            String path = exeFile.getAbsolutePath();
+            ProcessBuilder builder = new ProcessBuilder(
+                path,
+                "-f", "136", // ID 136 là mp4 720p (có cả tiếng + hình).
+                "-g",
+                ytb
+            );
+            Process process = builder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n"); // Lưu link vào output
+            }
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("Đã lấy được link trailer: " + output.toString().trim());
+                return output.toString().trim(); // Trả về link Youtube trực tiếp
+            } else {
+                // Đọc lỗi nếu lấy link thất bại (VD: link sai, video private...)
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                StringBuilder errorOutput = new StringBuilder();
+                String errLine;
+                while ((errLine = errorReader.readLine()) != null) {
+                    errorOutput.append(errLine).append("\n");
+                }
+                System.err.println("Lỗi yt-dlp: " + errorOutput.toString());
+                return "error"; // Trả về mã lỗi cho Client biết
+            }
+        } catch(Exception e){
+            System.err.println("Lỗi khi lấy link trailer: " + e.getMessage());
+            return "error"; // Trả về mã lỗi cho Client biết
+        }
+    }
 }

@@ -1,16 +1,37 @@
 package client;
 
+import javafx.embed.swing.JFXPanel;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
+import java.util.function.Consumer;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
+
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.Connection;
+
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.Connection;
 
 import org.json.JSONObject;
 
@@ -145,6 +166,7 @@ class MovieDetailsDialog extends JDialog {
         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
         JButton btnTrailer = new JButton(" Trailer");
+        btnTrailer.addActionListener(e -> getvideo(m.trailer));
         btnTrailer.setIcon(new ImageIcon("image/play.png"));
         btnTrailer.setPreferredSize(new Dimension(110, 35));
         btnTrailer.setFont(new Font("Arial", Font.BOLD, 15));
@@ -394,7 +416,91 @@ class MovieDetailsDialog extends JDialog {
 
         return p;
     }
+    private void openTrailerWindow(String fullUrlFromServer) {
+        if (fullUrlFromServer == null || fullUrlFromServer.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Link trailer trống!");
+            return;
+        }
+        
+        JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
+        trailerDialog.setSize(800, 450);
+        trailerDialog.setLocationRelativeTo(this);
+        trailerDialog.setLayout(new BorderLayout());
 
+        Platform.setImplicitExit(false);
+        final javafx.embed.swing.JFXPanel jfxPanel = new javafx.embed.swing.JFXPanel();
+        trailerDialog.add(jfxPanel, BorderLayout.CENTER);
+
+        // final String finalId = videoId;
+        javafx.application.Platform.runLater(() -> {
+            javafx.scene.web.WebView webView = new javafx.scene.web.WebView();
+            javafx.scene.web.WebEngine engine = webView.getEngine();
+
+            String chromeAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+            engine.setUserAgent(chromeAgent);
+            engine.load(fullUrlFromServer);
+
+            jfxPanel.setScene(new javafx.scene.Scene(webView));
+        });
+
+        // Giải phóng khi đóng cửa sổ
+        // trailerDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+        //     @Override
+        //     public void windowClosing(java.awt.event.WindowEvent e) {
+        //         javafx.application.Platform.runLater(() -> jfxPanel.setScene(null));
+        //     }
+        // });
+
+        trailerDialog.setVisible(true);
+    }
+    private void getvideo(String url) {
+        SwingWorker<String, Void> worker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() {
+                // Giả sử server trả về một URL YouTube đầy đủ, nếu cần xử lý thêm có thể làm ở đây
+                try(Socket socket = new Socket(ipserver, 4000);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
+                    
+                    writer.println("GET_TRAILER|" + url);
+                    String response = reader.readLine();
+                    if(response.equals("error"))
+                        return "Không có dữ liệu";
+                    return response; // Trả về URL đã nhận từ server
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    String ytburl = get();
+                    openTrailerWindow(ytburl);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(MovieDetailsDialog.this, "Không thể tải trailer: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
+    }
+//private void openTrailerWindow(String url) {
+//    if (url == null || url.isEmpty()) {
+//        JOptionPane.showMessageDialog(this, "Phim này hiện chưa có trailer!");
+//        return;
+//    }
+//
+//    try {
+//        // Lệnh này yêu cầu Windows/MacOS mở trình duyệt mặc định để truy cập link
+//        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+//    } catch (Exception e) {
+//        e.printStackTrace();
+//        JOptionPane.showMessageDialog(this, "Không thể mở trình duyệt: " + e.getMessage());
+//    }
+//}
     private String formatDate(String ymd) {
         try {
             if (ymd != null && ymd.length() >= 10) {
