@@ -29,7 +29,7 @@ class MovieDetailsDialog extends JDialog {
         super(parent, true);
         this.ipserver = ipserver; // Nhận IP từ màn hình chính truyền sang
         
-        setSize(900, 700);
+        setSize(950, 700);
         setLocationRelativeTo(parent);
         setUndecorated(true); 
         
@@ -38,7 +38,7 @@ class MovieDetailsDialog extends JDialog {
         mainPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
         JButton btnClose = new JButton("X");
-        btnClose.setBounds(840, 0, 60, 60);
+        btnClose.setBounds(890, 0, 60, 60);
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
         btnClose.setBorderPainted(false);
@@ -48,7 +48,7 @@ class MovieDetailsDialog extends JDialog {
         btnClose.addActionListener(e -> dispose());
 
         JLayeredPane layeredPane = new JLayeredPane();
-        layeredPane.setPreferredSize(new Dimension(900, 250));
+        layeredPane.setPreferredSize(new Dimension(950, 250));
 
         Image loadedBanner = null;
         try {
@@ -70,7 +70,7 @@ class MovieDetailsDialog extends JDialog {
                 }
             }
         };
-        coverPanel.setBounds(0, 0, 900, 250);
+        coverPanel.setBounds(0, 0, 950, 250);
         
         JPanel titleOverlay = new JPanel();
         titleOverlay.setLayout(new BoxLayout(titleOverlay, BoxLayout.Y_AXIS));
