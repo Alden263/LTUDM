@@ -342,7 +342,7 @@ class MovieDetailsDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "Link trailer trống!");
             return;
         }
-        
+        Platform.setImplicitExit(false);
         JDialog trailerDialog = new JDialog(this, "Cinema Finder Player", true);
         trailerDialog.setSize(800, 450);
         trailerDialog.setLocationRelativeTo(this);
