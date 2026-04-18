@@ -357,7 +357,7 @@ class MovieDetailsDialog extends JDialog {
         lblName.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel lblAddr = new JLabel(address);
+        JLabel lblAddr = new JLabel("<html><p style='width: 500px;'>" + address + "</p></html>");
         lblAddr.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblAddr.setForeground(TEXT_MUTED);
         lblAddr.setAlignmentX(Component.LEFT_ALIGNMENT);
