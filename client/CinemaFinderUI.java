@@ -143,7 +143,7 @@ public class CinemaFinderUI extends JFrame {
         // Dữ liệu giả lập bằng List
         branches = new LinkedHashMap<>();
         getlistcinema(typecinemaId);
-        renderBranches(listPanel, branches, typecinemaId);
+        // renderBranches(listPanel, branches, typecinemaId);
 
         JScrollPane scrollSidebar = new JScrollPane(listPanel);
         scrollSidebar.setBorder(null);
