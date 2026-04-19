@@ -187,17 +187,17 @@ public class ClientHandler implements Runnable {
 
             JSONObject data = json.getJSONObject("data");
             JSONArray films = data.getJSONArray("films");
-            // JSONArray pCinemas = data.optJSONArray("pCinemas");
-            // JSONObject cinemaInfo = findCinemaInfo(pCinemas, cinemaId);
+            JSONArray pCinemas = data.optJSONArray("pCinemas");
+            JSONObject cinemaInfo = findCinemaInfo(pCinemas, cinemaId);
 
-            // for (int i = 0; i < films.length(); i++) {
-            //     JSONObject film = films.getJSONObject(i);
-            //     film.put("selectedDate", selectedDate.toString());
-            //     film.put("cinemaName", cinemaInfo.optString("name", ""));
-            //     film.put("cinemaAddress", cinemaInfo.optString("address", ""));
-            //     film.put("providerName", cinemaInfo.optString("providerName", film.optString("publisher", "")));
-            //     film.put("sessionGroups", filterSessionGroupsByDay(film.optJSONArray("sessionGroups"), selectedDate));
-            // }
+            for (int i = 0; i < films.length(); i++) {
+                JSONObject film = films.getJSONObject(i);
+                film.put("selectedDate", selectedDate.toString());
+                film.put("cinemaName", cinemaInfo.optString("name", ""));
+                film.put("cinemaAddress", cinemaInfo.optString("address", ""));
+                film.put("providerName", cinemaInfo.optString("providerName", film.optString("publisher", "")));
+                film.put("sessionGroups", filterSessionGroupsByDay(film.optJSONArray("sessionGroups"), selectedDate));
+            }
 
             return getactor(films);
         } catch (IOException e) {
