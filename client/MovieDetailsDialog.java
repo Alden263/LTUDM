@@ -31,6 +31,7 @@ class MovieDetailsDialog extends JDialog {
     private JPanel reviewPanel;
     private String ipserver;
     private String SERVER_PUBLIC_KEY_B64;
+    private SwingWorker<String, Void> worker; // Biến toàn cục để có thể hủy khi đóng dialog
     // THÊM THAM SỐ ipserver VÀO CONSTRUCTOR
     public MovieDetailsDialog(JFrame parent, Movie m, String ipserver, String serverPublicKeyB64) {
         super(parent, true);
@@ -52,6 +53,13 @@ class MovieDetailsDialog extends JDialog {
         btnClose.setBorderPainted(false);
         btnClose.setForeground(Color.WHITE);
         btnClose.setFont(new Font("Arial", Font.BOLD, 20));
+        btnClose.addActionListener(e -> {
+            // Hủy tiến trình tải trailer nếu đang chạy dở
+            if (worker != null && !worker.isDone()) {
+                worker.cancel(true);
+            }
+            dispose();
+        });
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dispose());
 
@@ -451,7 +459,10 @@ class MovieDetailsDialog extends JDialog {
         trailerDialog.setVisible(true);
     }
     private void getvideo(String url) {
-        SwingWorker<String, Void> worker = new SwingWorker<>() {
+        if (worker != null && !worker.isDone()) {
+            return;
+        }
+        worker = new SwingWorker<>() {
             @Override
             protected String doInBackground() {
                 // Giả sử server trả về một URL YouTube đầy đủ, nếu cần xử lý thêm có thể làm ở đây
@@ -477,6 +488,7 @@ class MovieDetailsDialog extends JDialog {
 
             @Override
             protected void done() {
+                if(isCancelled()) return;
                 try {
                     String ytburl = get();
                     openTrailerWindow(ytburl);
