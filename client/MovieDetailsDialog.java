@@ -155,7 +155,7 @@ class MovieDetailsDialog extends JDialog {
         
         JPanel rightBottomInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         rightBottomInfo.setOpaque(false);
-        rightBottomInfo.add(createInfoBlock("Khởi chiếu", m.releaseDate.isEmpty() ? "Sắp chiếu" : m.releaseDate));
+        rightBottomInfo.add(createInfoBlock("Khởi chiếu", formatDate(m.releaseDate).isEmpty() ? "Sắp chiếu" : formatDate(m.releaseDate)));
         rightBottomInfo.add(Box.createHorizontalStrut(50));
         rightBottomInfo.add(createInfoBlock("Phân loại", m.ageRating + "+"));
         
