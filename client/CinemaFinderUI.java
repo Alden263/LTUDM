@@ -40,6 +40,9 @@ public class CinemaFinderUI extends JFrame {
     private static final int galaxycinemaId = 2;
     private static final int lottecinemaId = 26;
     private String ipserver;
+    SwingWorker<LinkedHashMap<Integer, String>, Void> cinemaworker;
+    SwingWorker<List<Movie>, Void> movieworker;
+    
 
     // #region Search IP server từ API
     public void searchipserver() throws IOException{
@@ -155,7 +158,10 @@ public class CinemaFinderUI extends JFrame {
 
     // #region Lấy list rạp chiếu
     private void getlistcinema(int cinemaId){
-        SwingWorker<LinkedHashMap<Integer, String>, Void> worker = new SwingWorker<LinkedHashMap<Integer, String>, Void>() {
+        if (cinemaworker != null && !cinemaworker.isDone()) {
+            cinemaworker.cancel(true); 
+        }
+        cinemaworker = new SwingWorker<LinkedHashMap<Integer, String>, Void>() {
         @Override
         protected LinkedHashMap<Integer, String> doInBackground() {
             LinkedHashMap<Integer, String> rawData = new LinkedHashMap<>();
@@ -222,7 +228,7 @@ public class CinemaFinderUI extends JFrame {
     };
 
     // Bắt đầu thực thi luồng ngầm
-    worker.execute();
+    cinemaworker.execute();
     }
     // render danh sách rạp chiếu
     int selectedIndex = 0;
@@ -386,7 +392,10 @@ public class CinemaFinderUI extends JFrame {
             grid.revalidate();
             grid.repaint();
         }
-        SwingWorker<List<Movie>, Void> worker = new SwingWorker<List<Movie>, Void>() {
+        if(movieworker != null && !movieworker.isDone()){
+            movieworker.cancel(true);
+        }
+        movieworker = new SwingWorker<List<Movie>, Void>() {
             protected List<Movie> doInBackground(){
                 List<Movie> movies = new ArrayList<>();
                 try (Socket socket = new Socket(ipserver, 4000);
@@ -454,6 +463,9 @@ public class CinemaFinderUI extends JFrame {
                 return movies;
             }
             protected void done(){
+                if(isCancelled()){
+                    return;
+                }
                 try{
                     List<Movie> movies = get();
                     grid.removeAll();
@@ -474,7 +486,7 @@ public class CinemaFinderUI extends JFrame {
                 }
             }
         };
-        worker.execute();
+        movieworker.execute();
     }
 
     private JPanel createMovieGridSection() {
