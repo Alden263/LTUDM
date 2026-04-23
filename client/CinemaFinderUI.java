@@ -143,7 +143,7 @@ public class CinemaFinderUI extends JFrame {
         // Dữ liệu giả lập bằng List
         branches = new LinkedHashMap<>();
         getlistcinema(typecinemaId);
-        renderBranches(listPanel, branches, typecinemaId);
+        // renderBranches(listPanel, branches, typecinemaId);
 
         JScrollPane scrollSidebar = new JScrollPane(listPanel);
         scrollSidebar.setBorder(null);
@@ -279,7 +279,7 @@ public class CinemaFinderUI extends JFrame {
                 public void mouseClicked(MouseEvent e) {
                     selectedIndex = index; // Cập nhật vị trí được chọn
                     renderBranches(listPanel, branches, typecinemaId); // Vẽ lại toàn bộ danh sách
-                    getlistmovie(index); // Lấy danh sách phim cho rạp được chọn
+                    // getlistmovie(index); // Lấy danh sách phim cho rạp được chọn
                 }
 
                 @Override
