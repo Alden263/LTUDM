@@ -527,7 +527,7 @@ private JSONObject searchMoveek(String query) throws Exception {
         String searchUrl = "https://moveek.com/tim-kiem/?q=" + java.net.URLEncoder.encode(query, "UTF-8");
         Document doc = Jsoup.connect(searchUrl)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .timeout(5000)
+                .timeout(10000)
                 .get();
 
         org.jsoup.select.Elements links = doc.select("a[href*='/bai-viet/']");
@@ -552,7 +552,7 @@ private JSONObject searchMoveek(String query) throws Exception {
         String ddgUrl = "https://html.duckduckgo.com/html/?q=site:moveek.com/bai-viet/+" + java.net.URLEncoder.encode(query, "UTF-8");
         Document doc = Jsoup.connect(ddgUrl)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .timeout(7000)
+                .timeout(10000)
                 .get();
 
         // Quét tất cả các khối kết quả
@@ -590,7 +590,7 @@ public JSONObject getGeneralReview(String movieName) {
         
         Document doc = Jsoup.connect(ddgUrl)
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .timeout(7000)
+                .timeout(10000)
                 .get();
 
         org.jsoup.select.Elements results = doc.select("div.result");

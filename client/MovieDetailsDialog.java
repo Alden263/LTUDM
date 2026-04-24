@@ -123,7 +123,7 @@ class MovieDetailsDialog extends JDialog {
         String rottenDisplay = m.rottenRating;
 
         statsPanel.add(createStatCard(new ImageIcon("image/star.png"), " TMDB", imdbDisplay, new Color(255, 248, 225)));
-        statsPanel.add(createStatCard(new ImageIcon("image/tomato.png"), "Số Lượng Votes", rottenDisplay, new Color(255, 235, 238)));
+        statsPanel.add(createStatCard(new ImageIcon(""), "Số Lượng Votes", rottenDisplay, new Color(255, 235, 238)));
         statsPanel.add(createStatCard(new ImageIcon("image/time.png"), " Thời Lượng", m.duration + " phút", new Color(227, 242, 253)));
 
         contentPanel.add(statsPanel);

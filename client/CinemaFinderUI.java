@@ -208,6 +208,14 @@ public class CinemaFinderUI extends JFrame {
                     lblEmpty.setForeground(TEXT_MUTED);
                     lblEmpty.setBorder(new EmptyBorder(0, 10, 0, 0));
                     listPanel.add(lblEmpty);
+
+                    grid.removeAll();
+                    JLabel lblEmptyMovie = new JLabel("Không tìm thấy phim nào cho rạp này.");
+                    lblEmptyMovie.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+                    lblEmptyMovie.setForeground(TEXT_MUTED);
+                    grid.add(lblEmptyMovie);
+                    grid.revalidate();
+                    grid.repaint();
                 } else{
                     for (Map.Entry<Integer, String> entry : resultList.entrySet()) {
                         int id = entry.getKey();
